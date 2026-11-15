@@ -20,6 +20,7 @@ CONFIG_PATH = PROJECT_ROOT / "config.json"
 
 try:
     from scripts.calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone
+    from scripts.market_pulse import get_market_pulse, format_pulse_text
     from scripts.discord_notifier import (
         format_forecast_embed,
         format_flash_embed,
@@ -28,6 +29,7 @@ try:
     )
 except ImportError:
     from calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone
+    from market_pulse import get_market_pulse, format_pulse_text
     from discord_notifier import (
         format_forecast_embed,
         format_flash_embed,
@@ -187,6 +189,10 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
     consensus_val = consensus if consensus else "N/A"
     previous_val = previous if previous else "N/A"
     
+    # Live Pre-News Market Pulse
+    pulse_data = get_market_pulse()
+    pulse_display = format_pulse_text(pulse_data)
+    
     analysis = {
         "event": kb["full_name"],
         "category": kb["category"],
@@ -200,6 +206,8 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "sp500_impact": kb["sp500"],
         "dow_impact": kb["dow"],
         "intermarket": kb["intermarket"],
+        "market_pulse": pulse_data,
+        "pulse_text": pulse_display,
         "scenario_hot": kb["hot_direction"],
         "scenario_cool": kb["cool_direction"],
         "scenario_inline": kb["inline_direction"],
@@ -233,8 +241,12 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
 ### 🏭 Dow Jones Industrial Average
 {kb['dow']}
 
-### 🌐 Intermarket Dynamic (DXY & US10Y)
+### 🌐 Intermarket Dynamic & Live Pulse
 {kb['intermarket']}
+
+```text
+{pulse_display}
+```
 
 ---
 

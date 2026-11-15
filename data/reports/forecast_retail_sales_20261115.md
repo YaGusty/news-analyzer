@@ -19,8 +19,15 @@
 ### 🏭 Dow Jones Industrial Average
 Dow Jones มีความไวสูงมากต่อ Retail Sales ผ่านหุ้นค้าปลีกยักษ์ใหญ่อย่าง Home Depot (HD), Walmart (WMT), Nike (NKE)
 
-### 🌐 Intermarket Dynamic (DXY & US10Y)
+### 🌐 Intermarket Dynamic & Live Pulse
 ยอดค้าปลีกแกร่ง → ตอกย้ำเศรษฐกิจไม่ถดถอย หนุน DXY แข็งค่าเล็กน้อย
+
+```text
+🌐 [PRE-NEWS MARKET PULSE]
+• DXY: 103.41 (-0.00%) | US10Y: 5.15% (+1.00%) | VIX: 19.30 (+3.21%)
+• NQ (Tech): 28034.75 (-1.23%) | ES (S&P): 7583.00 (-0.42%) | YM (Dow): 52418.00 (+0.05%)
+• สรุปบรรยากาศ: ⚠️ US 10Y Yield พุ่งขึ้น (+ กดดัน Valuation หุ้นเทค) | 📉 NQ ถูกเทขายนำตลาดก่อนข่าว
+```
 
 ---
 

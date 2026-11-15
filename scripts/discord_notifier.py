@@ -108,8 +108,15 @@ def format_forecast_embed(analysis: dict) -> dict:
             "inline": False
         })
 
-    # Intermarket (DXY & US10Y)
-    if analysis.get("intermarket"):
+    # Live Market Pulse (if available)
+    if analysis.get("market_pulse"):
+        from scripts.market_pulse import format_pulse_for_discord
+        embed["fields"].append({
+            "name": "🌐 Pre-News Live Market Pulse",
+            "value": format_pulse_for_discord(analysis["market_pulse"])[:1024],
+            "inline": False
+        })
+    elif analysis.get("intermarket"):
         embed["fields"].append({
             "name": "🌐 Intermarket Anchor (DXY & US10Y)",
             "value": analysis["intermarket"][:1024],

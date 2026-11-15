@@ -63,8 +63,11 @@ def run_forecast_cmd(args):
     print(analysis['sp500_impact'])
     print("\n[Dow Jones Sensitivity]")
     print(analysis['dow_impact'])
-    print("\n[Intermarket DXY / US10Y]")
-    print(analysis['intermarket'])
+    if analysis.get('pulse_text'):
+        print(f"\n{analysis['pulse_text']}")
+    else:
+        print("\n[Intermarket DXY / US10Y]")
+        print(analysis['intermarket'])
     print("\n[3-Scenario Matrix]")
     print(f"🔴 Hot:    {analysis['scenario_hot']}")
     print(f"🟢 Cool:   {analysis['scenario_cool']}")
@@ -137,6 +140,17 @@ def main():
     p_test = subparsers.add_parser("test-discord", help="Test connection to Discord Webhook")
     p_test.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL to test")
 
+    # Pulse subcommand
+    p_pulse = subparsers.add_parser("pulse", help="View real-time pre-news market pulse (DXY, US10Y, VIX, NQ, ES, YM)")
+    p_pulse.add_argument("--json", action="store_true", help="Output raw JSON")
+
+    # Scheduler subcommand
+    p_sched = subparsers.add_parser("scheduler", help="Run automated alert monitor for T-60 alerts & weekly radar")
+    p_sched.add_argument("--daemon", action="store_true", help="Run continuously in background")
+    p_sched.add_argument("--check-once", action="store_true", help="Run a single check and exit")
+    p_sched.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default: 60)")
+    p_sched.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL")
+
     args = parser.parse_args()
     
     if args.command == "calendar":
@@ -147,6 +161,28 @@ def main():
         run_flash_cmd(args)
     elif args.command == "test-discord":
         test_webhook(args.webhook)
+    elif args.command == "pulse":
+        from scripts.market_pulse import get_market_pulse, format_pulse_text
+        import json
+        pulse = get_market_pulse()
+        if args.json:
+            print(json.dumps(pulse, ensure_ascii=False, indent=2))
+        else:
+            print(f"\n{format_pulse_text(pulse)}\n")
+    elif args.command == "scheduler":
+        from scripts.alert_scheduler import run_scheduler_tick
+        import time
+        if args.daemon:
+            print(f"[*] Starting News Analyzer Alert Daemon (interval: {args.interval}s)...")
+            try:
+                while True:
+                    run_scheduler_tick(args.webhook)
+                    time.sleep(args.interval)
+            except KeyboardInterrupt:
+                print("\n[!] Stopped.")
+        else:
+            result = run_scheduler_tick(args.webhook)
+            print(f"Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']}")
     else:
         parser.print_help()
 
