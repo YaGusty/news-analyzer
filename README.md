@@ -63,6 +63,21 @@ python scripts/main.py forecast "CPI" --consensus "2.6%" --previous "2.4%" --dis
 python scripts/main.py flash "Retail Sales" "0.4%" --discord
 ```
 
+### 4. ตรวจสอบ Market Pulse แบบเรียลไทม์ (DXY, US10Y, VIX, NQ, ES, YM)
+```bash
+# ดูบรรยากาศตลาดและตัวเลขอ้างอิงก่อนข่าวออก
+python scripts/main.py pulse
+```
+
+### 5. เปิดระบบมอนิเตอร์และส่งแจ้งเตือนอัตโนมัติ (Automated Scheduler)
+```bash
+# เช็ครอบเดียว (Single Tick) เหมาะกับตั้ง Task Scheduler หรือ Cron
+python scripts/main.py scheduler --check-once
+
+# รัน Background มอนิเตอร์อัตโนมัติ (ตรวจจับ T-60 นาที และยิงเตือนก่อนข่าวออกทันที)
+python scripts/main.py scheduler --daemon --interval 60
+```
+
 ---
 
 ## 🤖 คำสั่ง Slash Commands บน Hermes Agent
