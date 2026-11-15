@@ -1,0 +1,95 @@
+# 🔴 News Analyzer
+
+ระบบวิเคราะห์ คาดการณ์ และรายงานข่าวเศรษฐกิจสหรัฐฯ กล่องแดง (**Red Folder News**) ที่มีผลต่อดัชนี **NAS100 (NQ)**, **S&P 500 (ES)**, และ **Dow Jones (YM)** พร้อมระบบแจ้งเตือนเข้า **Discord Webhook** แบบ Rich Embeds อัตโนมัติ
+
+---
+
+## 🚀 ฟังก์ชันหลัก (Core Features)
+
+1. **🔴 Red Folder Calendar Fetcher:** ดึงตารางข่าวเศรษฐกิจสำคัญของสหรัฐฯ อัตโนมัติ กรองเฉพาะระดับ High-Impact แปลงเวลาเป็นเวลาไทย (BKK UTC+7) และเวลานิวยอร์ก (ET) พร้อมคำนวณเวลานับถอยหลัง
+2. **🔮 Macro Forecasting & 3-Scenario Matrix:** วิเคราะห์ความสำคัญของตัวเลข ชี้วัดผลกระทบเจาะจงต่อ Tech (NAS100), Broad Market (S&P 500), Cyclicals (Dow) และประเมินฉากทัศน์ล่วงหน้า 3 กรณี (Hot / Cool / In-line)
+3. **⚡ Post-News Flash Report:** ประเมินตัวเลขจริงทันทีหลังประกาศ (Actual vs Consensus) สรุปทิศทางดอกเบี้ย Fed และปฏิกิริยาของตลาด
+4. **💬 Discord Webhook Integration:** จัดรูปแบบข้อความแบบ Rich Embed สีสันชัดเจน (แดง = Hawkish / เขียว = Dovish / ฟ้า = Weekly / เหลือง = Forecast) ส่งตรงถึง Discord ของคุณ
+
+---
+
+## 🛠️ การตั้งค่าเริ่มต้น (Setup)
+
+### 1. ตั้งค่า Discord Webhook
+1. ใน Discord ไปที่ห้องที่ต้องการรับการแจ้งเตือน → กดรูปฟันเฟือง **Edit Channel**
+2. ไปที่แถบ **Integrations** → เลือก **Webhooks** → กด **New Webhook**
+3. ตั้งชื่อบอท (เช่น `News Analyzer`) แล้วกด **Copy Webhook URL**
+4. เปิดไฟล์ `.env` แล้ววาง URL ลงไป:
+   ```env
+   DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/123456789/abcdef...
+   ```
+
+### 2. ทดสอบการเชื่อมต่อ
+```bash
+python scripts/main.py test-discord
+```
+
+---
+
+## 📖 วิธีใช้งานผ่านคำสั่ง CLI (Usage)
+
+### 1. ดูตารางข่าวกล่องแดง (Calendar)
+```bash
+# ดูข่าวกล่องแดงทั้งสัปดาห์
+python scripts/main.py calendar
+
+# ดูข่าวเฉพาะวันนี้
+python scripts/main.py calendar --today
+
+# ดูข่าวทั้งสัปดาห์พร้อมส่งสรุปเข้า Discord
+python scripts/main.py calendar --discord
+```
+
+### 2. วิเคราะห์และคาดการณ์ก่อนข่าวออก (Pre-News Forecast)
+```bash
+# วิเคราะห์ข่าว Retail Sales ล่วงหน้า
+python scripts/main.py forecast "Retail Sales"
+
+# วิเคราะห์พร้อมส่งการ์ดเข้า Discord
+python scripts/main.py forecast "Retail Sales" --discord
+
+# วิเคราะห์ข่าว CPI โดยระบุตัวเลขคาดการณ์เอง
+python scripts/main.py forecast "CPI" --consensus "2.6%" --previous "2.4%" --discord
+```
+
+### 3. วิเคราะห์ด่วนหลังตัวเลขออก (Post-News Flash)
+```bash
+# วิเคราะห์ตัวเลขจริงที่เพิ่งประกาศ พร้อมส่งเข้า Discord
+python scripts/main.py flash "Retail Sales" "0.4%" --discord
+```
+
+---
+
+## 🤖 คำสั่ง Slash Commands บน Hermes Agent
+
+เมื่อใช้งานผ่าน Hermes Desktop สามารถสั่งงานได้ทันที:
+- `/calendar` — เรียกดูตารางข่าวกล่องแดง
+- `/forecast <EVENT>` — คาดการณ์และวิเคราะห์ผลกระทบ
+- `/post-news <EVENT> <ACTUAL>` — รายงานด่วนหลังตัวเลขออก
+- `/weekly-radar` — สรุปข่าวรอบสัปดาห์ยิงเข้า Discord
+- `/discord test` — ทดสอบการเชื่อมต่อ
+
+---
+
+## 📂 โครงสร้างโฟลเดอร์
+
+```text
+news-analyzer/
+├── .env                  # ตั้งค่า Discord Webhook URL
+├── config.json           # การตั้งค่า Timezone, ดัชนีเป้าหมาย และ Keywords
+├── HERMES.md             # คู่มือและขอบเขตการทำงานของ AI ประจำโปรเจกต์
+├── scripts/
+│   ├── calendar_fetcher.py # ดึงตารางข่าวและแคชข้อมูล
+│   ├── analyzer.py         # โมเดลวิเคราะห์มหภาคและ 3 ฉากทัศน์
+│   ├── discord_notifier.py # ส่งการแจ้งเตือนเข้า Discord Webhook
+│   └── main.py             # จุดรวมคำสั่ง Master CLI
+├── data/
+│   ├── calendar/           # แคชตารางข่าวเศรษฐกิจ
+│   └── reports/            # บันทึกไฟล์บทวิเคราะห์ Markdown
+└── .hermes/skills/        # Hermes Slash Commands
+```

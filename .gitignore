@@ -1,0 +1,12 @@
+# Environment & Secrets
+.env
+*.env
+
+# Cache & Data
+data/calendar/cache_events.json
+__pycache__/
+*.pyc
+
+# OS
+Thumbs.db
+.DS_Store

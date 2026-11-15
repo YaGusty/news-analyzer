@@ -1,0 +1,63 @@
+{
+  "project_name": "news-analyzer",
+  "version": "1.0.0",
+  "description": "Macro economic news analyzer and forecaster for NAS100, S&P 500, and Dow Jones with Discord notifications",
+  "timezone": {
+    "local_offset_hours": 7,
+    "local_name": "Asia/Bangkok (UTC+7)",
+    "ny_name": "America/New_York (ET)"
+  },
+  "indices": [
+    {
+      "symbol": "NAS100",
+      "ticker": "NQ / QQQ",
+      "name": "Nasdaq 100",
+      "driver": "Highly sensitive to US 10Y Yields, Big Tech valuation, growth multiples, AI capex, and discount rate expectations"
+    },
+    {
+      "symbol": "SP500",
+      "ticker": "ES / SPY",
+      "name": "S&P 500",
+      "driver": "Broad macroeconomic barometer, balancing tech growth with financial, healthcare, and consumer stability"
+    },
+    {
+      "symbol": "DOW",
+      "ticker": "YM / DIA",
+      "name": "Dow Jones Industrial Average",
+      "driver": "Value, cyclical industrials, retail banks, and infrastructure; sensitive to GDP growth and industrial PMI"
+    }
+  ],
+  "intermarket": [
+    {
+      "symbol": "DXY",
+      "name": "US Dollar Index",
+      "correlation": "Inverse to Equities (Strong Dollar = Tight financial conditions & headwind for multinationals)"
+    },
+    {
+      "symbol": "US10Y",
+      "name": "US 10-Year Treasury Yield",
+      "correlation": "Key discount rate benchmark (Spiking yield directly compresses Nasdaq P/E multiples)"
+    }
+  ],
+  "cache_duration_hours": 3,
+  "high_impact_keywords": [
+    "cpi",
+    "consumer price index",
+    "pce",
+    "nonfarm",
+    "non-farm",
+    "payroll",
+    "unemployment rate",
+    "fomc",
+    "interest rate",
+    "fed fund",
+    "powell",
+    "gdp",
+    "ppi",
+    "producer price",
+    "retail sales",
+    "ism manufacturing",
+    "ism services",
+    "initial jobless claims"
+  ]
+}
