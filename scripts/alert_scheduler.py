@@ -58,18 +58,25 @@ def save_alert_history(history: dict):
         json.dump(history, f, ensure_ascii=False, indent=2)
 
 
-def check_and_send_weekly_radar(history: dict, webhook_url: str = None) -> bool:
-    """Check if weekly radar should be dispatched for this week."""
+def check_and_send_weekly_radar(history: dict, webhook_url: str = None, force: bool = False) -> bool:
+    """
+    Check if weekly radar should be dispatched for this week.
+    Automatically fires every Monday morning (from 07:00 AM BKK time).
+    """
     now_bkk = datetime.now(BKK_TZ)
-    # Week identifier e.g. "2026-W46"
     week_id = now_bkk.strftime("%Y-W%W")
     
-    if week_id in history.get("weekly_sent", []):
-        return False
+    if not force:
+        if week_id in history.get("weekly_sent", []):
+            return False
+            
+        # Automatic trigger: Monday from 07:00 BKK onwards (or Tuesday fallback)
+        if now_bkk.weekday() not in (0, 1):
+            return False
+        if now_bkk.weekday() == 0 and now_bkk.hour < 7:
+            return False
         
-    # Check if Monday or forced check
-    # Send on Monday or if never sent for this week
-    print(f"[Scheduler] Dispatching Weekly Radar for {week_id}...")
+    print(f"[Scheduler] 📡 Dispatching Automated Weekly Radar for {week_id}...")
     events = get_calendar_events(force_refresh=True, high_only=True)
     payload = format_weekly_radar_embed(events)
     
@@ -79,7 +86,8 @@ def check_and_send_weekly_radar(history: dict, webhook_url: str = None) -> bool:
     if ok:
         if "weekly_sent" not in history:
             history["weekly_sent"] = []
-        history["weekly_sent"].append(week_id)
+        if week_id not in history["weekly_sent"]:
+            history["weekly_sent"].append(week_id)
         save_alert_history(history)
         return True
     return False
@@ -274,13 +282,19 @@ def check_and_send_post_news_flashes(events: list, history: dict, webhook_url: s
 
 
 def run_scheduler_tick(webhook_url: str = None) -> dict:
-    """Run a single check pass across calendar, T-60 alerts, and instant flashes."""
+    """Run a single check pass across weekly radar, calendar, T-60 alerts, and instant flashes."""
     now_bkk = datetime.now(BKK_TZ).strftime("%Y-%m-%d %H:%M:%S")
     
     history = load_alert_history()
     events = get_calendar_events(high_only=True)
     
+    # 1. Automated Monday Morning Weekly Radar Kickoff
+    weekly_sent = check_and_send_weekly_radar(history, webhook_url)
+    
+    # 2. Pre-News Forecast Alerts (T-60m)
     pre_count = check_and_send_pre_news_alerts(events, history, webhook_url)
+    
+    # 3. Post-News Flash Analysis & Active Sniping
     flash_count = check_and_send_post_news_flashes(events, history, webhook_url)
     
     sleep_secs, mode_desc = get_adaptive_interval(events)
@@ -288,6 +302,7 @@ def run_scheduler_tick(webhook_url: str = None) -> dict:
     return {
         "status": "ok",
         "timestamp": now_bkk,
+        "weekly_radar_sent": weekly_sent,
         "pre_alerts_sent": pre_count,
         "flash_alerts_sent": flash_count,
         "events_monitored": len(events),
@@ -308,7 +323,7 @@ def main():
     history = load_alert_history()
     
     if args.send_weekly:
-        check_and_send_weekly_radar(history, args.webhook)
+        check_and_send_weekly_radar(history, args.webhook, force=True)
         return
         
     if args.check_once:
