@@ -168,15 +168,12 @@ def main():
     p_sched.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default: 60)")
     p_sched.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL")
 
-    # Backtest subcommand
-    p_bt = subparsers.add_parser("backtest", help="Run macro backtest (2019-2025 cycle, live forward tracker, or all)")
-    p_bt.add_argument("--year", type=str, default="2025", choices=["2019", "2020", "2021", "2022", "2025", "live", "all"], help="Year to backtest (2019-2025, live forward tracker, or all)")
-    p_bt.add_argument("--category", type=str, default=None, help="Filter by category (CPI, NFP, FOMC, Retail, PPI)")
-    p_bt.add_argument("--detailed", action="store_true", help="Print full event-by-event log")
-
-    # Reaction subcommand
+    # Reaction subcommand (Verified Live Forward Reactions)
     p_rx = subparsers.add_parser("reaction", help="View quantitative live event price reactions & statistics")
     p_rx.add_argument("--summary", action="store_true", help="Show statistical distribution and whipsaw rate")
+
+    # Backtest subcommand (Redirected to Verified Reaction Tracker)
+    p_bt = subparsers.add_parser("backtest", help="View verified live reaction benchmark (replaces old curated backtest)")
 
     args = parser.parse_args()
     
@@ -196,10 +193,6 @@ def main():
             print(json.dumps(pulse, ensure_ascii=False, indent=2))
         else:
             print(f"\n{format_pulse_text(pulse)}\n")
-    elif args.command == "reaction":
-        from scripts.reaction_logger import compute_reaction_statistics, print_reaction_report
-        stats = compute_reaction_statistics()
-        print_reaction_report(stats)
     elif args.command == "scheduler":
         from scripts.alert_scheduler import run_scheduler_tick, get_adaptive_interval, get_calendar_events, BKK_TZ
         from datetime import datetime
@@ -222,18 +215,12 @@ def main():
         else:
             result = run_scheduler_tick(args.webhook)
             print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} | Mode: {result['mode']}")
-    elif args.command == "backtest":
-        from scripts.backtest import run_backtest_by_year, print_single_year_report, print_comparative_table
-        from scripts.reaction_logger import print_reaction_report
-        res = run_backtest_by_year(year=args.year, category_filter=args.category)
-        if res.get("mode") == "all":
-            print_comparative_table(res)
-        elif res.get("mode") == "live":
-            print_reaction_report(res["stats"])
-        elif "stats" in res:
-            print_single_year_report(res["stats"], detailed=args.detailed)
-        else:
-            print(res.get("error", "Unknown error."))
+    elif args.command in ("reaction", "backtest"):
+        from scripts.reaction_logger import compute_reaction_statistics, print_reaction_report
+        if args.command == "backtest":
+            print("[*] ชุดประเมินผล Macro Backtest เก่าถูกลบออกแล้ว — ระบบเปลี่ยนมาใช้ 'Verified Live Forward Reaction Tracker' เพื่อความโปร่งใสและไม่มี Hindsight Bias")
+        stats = compute_reaction_statistics()
+        print_reaction_report(stats)
     else:
         parser.print_help()
 
