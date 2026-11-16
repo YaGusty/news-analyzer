@@ -1,18 +1,12 @@
 ---
 name: discord-alert
-description: "Use when testing or managing Discord notifications for News Analyzer (/discord)."
-metadata:
-  hermes:
-    tags: [discord, webhook, notification, test]
+description: >-
+  Use when testing or managing Discord notifications and webhooks for News Analyzer.
 ---
 
 # discord-alert Skill
 
 ใช้เมื่อต้องการทดสอบหรือตรวจสอบการเชื่อมต่อกับ Discord Webhook
-
-## คำสั่ง:
-- `/discord test` — ทดสอบยิงข้อความทดสอบเข้า Discord
-- `/discord status` — ตรวจสอบสถานะ Webhook URL ใน `.env`
 
 ## ขั้นตอนการทำงาน:
 1. หากต้องการทดสอบ: รัน `python scripts/main.py test-discord`

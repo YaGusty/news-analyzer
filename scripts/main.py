@@ -56,6 +56,8 @@ def run_forecast_cmd(args):
     print(f"Event: {analysis['event']} {period_str}")
     print(f"Time (BKK): {analysis['time_bkk']} | NY: {analysis['time_ny']}")
     print(f"Consensus: {analysis['consensus']} | Previous: {analysis['previous']}")
+    if analysis.get('tldr'):
+        print(f"\n{analysis['tldr']}")
     print(f"Markdown Report: {analysis['report_path']}")
     print("\n[NAS100 Sensitivity]")
     print(analysis['nas100_impact'])
@@ -89,9 +91,12 @@ def run_flash_cmd(args):
         previous=args.previous
     )
     
+    badge = flash.get('deviation_badge', flash['verdict'])
     print(f"Event: {flash['event']}")
-    print(f"Actual: {flash['actual']} vs Expected: {flash['consensus']} (Previous: {flash['previous']})")
-    print(f"Verdict: {flash['verdict']}")
+    print(f"Verdict: {badge}")
+    print(f"Actual: {flash['actual']} vs Expected: {flash['consensus']} (Diff: {flash.get('deviation_str', '-')}) | Previous: {flash['previous']}")
+    if flash.get('tldr'):
+        print(f"\n{flash['tldr']}")
     print(f"Markdown Report: {flash['report_path']}")
     print(f"\n[Summary]\n{flash['summary']}")
     print(f"\n[Market Reaction Dynamics]\n{flash['market_reaction']}")
@@ -170,19 +175,27 @@ def main():
         else:
             print(f"\n{format_pulse_text(pulse)}\n")
     elif args.command == "scheduler":
-        from scripts.alert_scheduler import run_scheduler_tick
+        from scripts.alert_scheduler import run_scheduler_tick, get_sniping_interval, get_calendar_events, BKK_TZ
+        from datetime import datetime
         import time
         if args.daemon:
-            print(f"[*] Starting News Analyzer Alert Daemon (interval: {args.interval}s)...")
+            print(f"[*] Starting News Analyzer Alert Daemon (Dynamic Turbo Sniping Mode)...")
+            print(f"    • Standard interval: {args.interval}s")
+            print(f"    • Turbo Sniping interval: 5s (during T-2m to T+10m news window)")
+            print("Press Ctrl+C to stop.\n")
             try:
                 while True:
-                    run_scheduler_tick(args.webhook)
-                    time.sleep(args.interval)
+                    result = run_scheduler_tick(args.webhook)
+                    events = get_calendar_events(high_only=True)
+                    sleep_secs = get_sniping_interval(events, default_interval=args.interval)
+                    if sleep_secs <= 10:
+                        print(f"[{datetime.now(BKK_TZ).strftime('%H:%M:%S')}] 🚀 [TURBO SNIPING] Polling actual release every {sleep_secs}s...")
+                    time.sleep(sleep_secs)
             except KeyboardInterrupt:
                 print("\n[!] Stopped.")
         else:
             result = run_scheduler_tick(args.webhook)
-            print(f"Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']}")
+            print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} (Turbo Sniping: {result['turbo_sniping']})")
     else:
         parser.print_help()
 

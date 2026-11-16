@@ -19,7 +19,7 @@ REPORTS_DIR = PROJECT_ROOT / "data" / "reports"
 CONFIG_PATH = PROJECT_ROOT / "config.json"
 
 try:
-    from scripts.calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone
+    from scripts.calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone, calculate_deviation
     from scripts.market_pulse import get_market_pulse, format_pulse_text
     from scripts.discord_notifier import (
         format_forecast_embed,
@@ -28,7 +28,7 @@ try:
         load_webhook_url
     )
 except ImportError:
-    from calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone
+    from calendar_fetcher import get_calendar_events, BKK_TZ, get_ny_timezone, calculate_deviation
     from market_pulse import get_market_pulse, format_pulse_text
     from discord_notifier import (
         format_forecast_embed,
@@ -193,6 +193,18 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
     pulse_data = get_market_pulse()
     pulse_display = format_pulse_text(pulse_data)
     
+    # Dynamic high-signal TL;DR
+    if kb["category"] == "Inflation":
+        tldr = f"🔥 สรุปจุดโฟกัส: ตลาดจับตาเงินเฟ้อเทียบคาด `{consensus_val}` — หากร้อนแรง Yields พุ่งกดดัน Tech (NQ) หนักสุด / หากเย็นลงเปิดทาง Relief Rally ทั่วกระดาน"
+    elif kb["category"] == "Employment":
+        tldr = f"💼 สรุปจุดโฟกัส: ตลาดต้องการตัวเลข Goldilocks เทียบคาด `{consensus_val}` — ร้อนเกินไปกลัวดอกเบี้ย / แย่เกินไปกลัว Recession"
+    elif kb["category"] == "Central Bank":
+        tldr = f"🏛️ สรุปจุดโฟกัส: นโยบายดอกเบี้ย Fed และถ้อยแถลง Powell — ทัศนะต่อ Dot Plot จะชี้ชะตาทิศทางของ NQ, ES, YM ทั้งสัปดาห์"
+    elif kb["category"] == "Consumption":
+        tldr = f"🛒 สรุปจุดโฟกัส: กำลังซื้อผู้บริโภค 70% ของ GDP เทียบคาด `{consensus_val}` — มีผลตรงต่อ Dow Jones และหุ้นค้าปลีกขนาดใหญ่"
+    else:
+        tldr = f"📊 สรุปจุดโฟกัส: ติดตามตัวเลขจริงเทียบคาดการณ์ `{consensus_val}` เพื่อจับทิศทาง Dollar Index (DXY) และพันธบัตรสหรัฐฯ (US10Y)"
+    
     analysis = {
         "event": kb["full_name"],
         "category": kb["category"],
@@ -201,6 +213,7 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "time_ny": time_ny,
         "consensus": consensus_val,
         "previous": previous_val,
+        "tldr": tldr,
         "description": kb["description"],
         "nas100_impact": kb["nas100"],
         "sp500_impact": kb["sp500"],
@@ -214,57 +227,24 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
     
-    # Save markdown report
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = event_name.lower().replace(" ", "_").replace("/", "_")[:20]
-    date_str = datetime.now().strftime("%Y%m%d")
-    report_file = REPORTS_DIR / f"forecast_{slug}_{date_str}.md"
-    
-    md_content = f"""# 🔴 Macro Forecast: {kb['full_name']}
-- **หมวดหมู่:** {kb['category']}
-- **เวลาประกาศ (ไทย):** {time_bkk}
-- **เวลาประกาศ (NY):** {time_ny}
-- **Consensus (คาดการณ์):** `{consensus_val}` | **Previous (ครั้งก่อน):** `{previous_val}`
-
----
-
-## 1. คำอธิบายและความสำคัญเชิงมหภาค
-{kb['description']}
-
-## 2. การประเมินผลกระทบรายดัชนี (Index Sensitivity)
-### 💻 NAS100 (Nasdaq 100)
-{kb['nas100']}
-
-### 📊 S&P 500
-{kb['sp500']}
-
-### 🏭 Dow Jones Industrial Average
-{kb['dow']}
-
-### 🌐 Intermarket Dynamic & Live Pulse
-{kb['intermarket']}
-
-```text
-{pulse_display}
-```
-
----
-
-## 3. แบบจำลองคาดการณ์ 3 ฉากทัศน์ (Scenario Matrix)
-- 🔴 **Hot / Hawkish:** {kb['hot_direction']}
-- 🟢 **Cool / Dovish:** {kb['cool_direction']}
-- 🟡 **In-line / Mixed:** {kb['inline_direction']}
-"""
-    with open(report_file, "w", encoding="utf-8") as f:
-        f.write(md_content)
+    # Save markdown report (resilient to filesystem permissions)
+    try:
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        slug = event_name.lower().replace(" ", "_").replace("/", "_")[:20]
+        date_str = datetime.now().strftime("%Y%m%d")
+        report_file = REPORTS_DIR / f"forecast_{slug}_{date_str}.md"
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write(md_content)
+        analysis["report_path"] = str(report_file)
+    except Exception:
+        analysis["report_path"] = "Generated in-memory (File write skipped)"
         
-    analysis["report_path"] = str(report_file)
     return analysis
 
 
 def analyze_flash(event_name: str, actual: str, consensus: str = None, previous: str = None) -> dict:
     """
-    Generate instant post-news flash breakdown.
+    Generate instant post-news flash breakdown with deviation delta and high visual clarity.
     """
     kb = match_knowledge_entry(event_name)
     
@@ -285,88 +265,81 @@ def analyze_flash(event_name: str, actual: str, consensus: str = None, previous:
     consensus_val = consensus or "N/A"
     previous_val = previous or "N/A"
     
-    # Calculate simple deviation heuristic
-    verdict = "IN-LINE"
-    try:
-        # Try numeric conversion
-        act_clean = float(actual.replace("%", "").replace("k", "").replace("K", "").replace("M", "").strip())
-        con_clean = float(consensus_val.replace("%", "").replace("k", "").replace("K", "").replace("M", "").strip())
-        diff = act_clean - con_clean
-        
-        # Invert logic for Unemployment / Jobless Claims (where higher is bad for economy/dovish for rates)
-        is_labor_claim = "unemployment" in event_name.lower() or "claims" in event_name.lower()
-        
-        if abs(diff) < 0.05 * abs(con_clean if con_clean != 0 else 1):
-            verdict = "IN-LINE"
-        elif diff > 0:
-            verdict = "DOVISH" if is_labor_claim else "HAWKISH"
-        else:
-            verdict = "HAWKISH" if is_labor_claim else "DOVISH"
-    except Exception:
-        verdict = "MIXED"
-
-    summary = f"ตัวเลข {kb['full_name']} รายงานออกมาที่ {actual} เทียบกับที่ตลาดคาดการณ์ไว้ที่ {consensus_val} (ครั้งก่อน {previous_val})"
+    # Calculate exact deviation
+    dev_info = calculate_deviation(actual, consensus_val)
+    delta_str = dev_info.get("delta_str", "-")
+    direction = dev_info.get("direction", "UNKNOWN")
     
-    if verdict == "HAWKISH":
-        market_reaction = (
-            f"• ตัวเลขสูงกว่าคาดการณ์ (Hot Data) ส่งผลให้อัตราผลตอบแทนพันธบัตร (US10Y) ดีดตัวขึ้น และหนุน DXY แข็งค่าทันที\n"
-            f"• **NAS100:** ได้รับแรงกดดันจากการปรับลด Valuation Multiples โดยเฉพาะหุ้น Mega-cap Tech\n"
-            f"• **S&P 500 / Dow:** เผชิญแรงขายทำกำไรระยะสั้นตาม sentiment สภาพคล่องที่ตึงตัวขึ้น"
-        )
-        fed_outlook = "ลดน้ำหนักการปรับลดดอกเบี้ยเชิงรุกของ Fed และเพิ่มโอกาสการคงดอกเบี้ยในระดับสูงต่อไป"
-    elif verdict == "DOVISH":
-        market_reaction = (
-            f"• ตัวเลขชะลอตัวลงตามหรือต่ำกว่าคาด ส่งผลให้ US10Y Yield อ่อนตัวลงและ DXY ปรับฐานลดลง\n"
-            f"• **NAS100:** ตอบสนองเชิงบวกอย่างเด่นชัด มีโอกาสเกิด Relief Rally ในกลุ่ม Semiconductor และ Tech Growth\n"
-            f"• **S&P 500 / Dow:** ปรับตัวขึ้นตามบรรยากาศการลงทุนที่ผ่อนคลายขึ้น"
-        )
-        fed_outlook = "สนับสนุนสมมติฐานว่าอัตราเงินเฟ้อหรือความร้อนแรงของเศรษฐกิจกำลังเข้าสู่ทิศทางเป้าหมายของ Fed เปิดทางให้ผ่อนคลายนโยบายการเงิน"
+    # Invert logic for Unemployment / Jobless Claims (where higher is dovish for rates)
+    is_labor_claim = "unemployment" in event_name.lower() or "claims" in event_name.lower()
+    
+    if direction == "BEAT":
+        verdict = "DOVISH" if is_labor_claim else "HAWKISH"
+        deviation_badge = f"🔴 HOT ({delta_str})" if not is_labor_claim else f"🟢 DOVISH ({delta_str})"
+    elif direction == "MISS":
+        verdict = "HAWKISH" if is_labor_claim else "DOVISH"
+        deviation_badge = f"🟢 COOL ({delta_str})" if not is_labor_claim else f"🔴 HOT ({delta_str})"
     else:
-        market_reaction = (
-            f"• ตัวเลขใกล้เคียงกับที่ตลาดซึมซับไว้แล้ว (Priced-in) ตลาดอาจเกิดความผันผวนสองฝั่งระยะสั้น\n"
-            f"• **NAS100 / S&P 500 / Dow:** กลับไปเคลื่อนไหวตามทิศทาง Technical และปัจจัยเฉพาะกลุ่ม"
-        )
-        fed_outlook = "ไม่เปลี่ยนแปลงทัศนะหรือ Dot Plot ของธนาคารกลางสหรัฐฯ อย่างมีนัยสำคัญ"
+        verdict = "IN-LINE"
+        deviation_badge = f"🟡 IN-LINE ({delta_str})"
+
+    if verdict == "HAWKISH":
+        tldr = f"⚡ ฟันธง: ตัวเลขร้อนแรงกว่าคาด ({delta_str}) → หนุน DXY แข็งค่า + US10Y พุ่ง → กดดัน Valuation หุ้นเทค (NQ ย่อตัวแรงสุด)"
+        nq_impact = "⬇️ **NQ (Tech):** เสี่ยงย่อตัวแรงสุดจาก Bond Yield ดีดตัวกดดัน P/E Multiples หุ้นเติบโตและ AI"
+        es_impact = "⬇️ **ES (S&P 500):** เผชิญแรงขายทำกำไรตามสภาพคล่องที่ตึงตัวขึ้น แต่มีกลุ่ม Defensive ช่วยพยุง"
+        ym_impact = "↘️ **YM (Dow):** ปรับฐานปานกลาง หุ้น Cyclicals กังวลต้นทุนกู้ยืมที่อาจสูงนานขึ้น"
+        intermarket_impact = "⬆️ **DXY / US10Y:** ดอลลาร์แข็งค่าทดสอบแนวต้าน / Yield พันธบัตรพุ่งขึ้น"
+        fed_outlook = "🏛️ ลดโอกาสที่ Fed จะผ่อนคลายนโยบายการเงินเร็ว หนุนธีม Higher-for-Longer"
+    elif verdict == "DOVISH":
+        tldr = f"⚡ ฟันธง: ตัวเลขชะลอตัวลง ({delta_str}) → DXY อ่อนค่า + US10Y ปรับลง → หนุน Relief Rally หุ้นเทคและภาพรวม (NQ/ES ดีดตัว)"
+        nq_impact = "⬆️ **NQ (Tech):** ผู้ชนะหลัก (Top Outperformer) Yields ลดลงหนุนแรงซื้อกลุ่ม Semiconductor และ Cloud"
+        es_impact = "⬆️ **ES (S&P 500):** ดัชนีภาพรวมเปิดรับความเสี่ยง (Risk-On) หนุนความเชื่อมั่นกำไรบริษัทจดทะเบียน"
+        ym_impact = "↗️ **YM (Dow):** ฟื้นตัวตามความหวัง Soft Landing และแรงกดดันเงินเฟ้อที่เบาลง"
+        intermarket_impact = "⬇️ **DXY / US10Y:** ดอลลาร์ร่วงหลุดแนวรับ / Yield ปรับฐานลงเปิดทางหุ้นขึ้น"
+        fed_outlook = "🏛️ สนับสนุนสมมติฐานว่า Fed สามารถลดดอกเบี้ยได้ตามเป้า เพิ่มโอกาสผ่อนคลายนโยบายการเงิน"
+    else:
+        tldr = f"⚡ ฟันธง: ตัวเลขใกล้เคียงคาด ({delta_str}) → ตลาดซึมซับไว้แล้ว (Priced-in) ระวังราคาผันผวนสะบัดสองฝั่ง (Whipsaw)"
+        nq_impact = "↔️ **NQ (Tech):** ผันผวนตาม Technical และกระแสเงินเฉพาะกลุ่ม เคลื่อนไหวในกรอบ"
+        es_impact = "↔️ **ES (S&P 500):** แกว่งตัวรอปัจจัยใหม่ สลับกลุ่มหมุนเวียน (Sector Rotation)"
+        ym_impact = "↔️ **YM (Dow):** เคลื่อนไหวตามผลประกอบการและข้อมูลรายอุตสาหกรรม"
+        intermarket_impact = "↔️ **DXY / US10Y:** แกว่งตัวในกรอบเดิม ไม่เกิด Breakout รุนแรง"
+        fed_outlook = "🏛️ ไม่เปลี่ยนแนวโน้ม Dot Plot ของ Fed ตลาดรอคอยชุดข้อมูลถัดไป"
+
+    summary = f"ตัวเลข {kb['full_name']} รายงานออกมาที่ `{actual}` เทียบกับคาดการณ์ `{consensus_val}` (ส่วนต่าง: `{delta_str}` | ครั้งก่อน `{previous_val}`)"
+    
+    market_reaction = f"{nq_impact}\n{es_impact}\n{ym_impact}\n{intermarket_impact}"
 
     flash_data = {
         "event": kb["full_name"],
         "actual": actual,
         "consensus": consensus_val,
         "previous": previous_val,
+        "deviation_str": delta_str,
+        "deviation_badge": deviation_badge,
         "verdict": verdict,
+        "tldr": tldr,
         "summary": summary,
         "market_reaction": market_reaction,
+        "nq_impact": nq_impact,
+        "es_impact": es_impact,
+        "ym_impact": ym_impact,
+        "intermarket_impact": intermarket_impact,
         "fed_outlook": fed_outlook,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
     
-    # Save markdown report
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = event_name.lower().replace(" ", "_").replace("/", "_")[:20]
-    date_str = datetime.now().strftime("%Y%m%d_%H%M")
-    report_file = REPORTS_DIR / f"flash_{slug}_{date_str}.md"
-    
-    md_content = f"""# ⚡ Flash Report: {kb['full_name']}
-- **Actual (ตัวเลขจริง):** `{actual}`
-- **Consensus (คาดการณ์):** `{consensus_val}`
-- **Previous (ครั้งก่อน):** `{previous_val}`
-- **Verdict:** {verdict}
-
----
-
-## 📌 บทสรุปตัวเลข
-{summary}
-
-## 📊 ผลกระทบต่อตลาด (NQ / ES / YM)
-{market_reaction}
-
-## 🏛️ ทัศนะต่ออัตราดอกเบี้ย Fed
-{fed_outlook}
-"""
-    with open(report_file, "w", encoding="utf-8") as f:
-        f.write(md_content)
+    # Save markdown report (resilient to filesystem permissions)
+    try:
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        slug = event_name.lower().replace(" ", "_").replace("/", "_")[:20]
+        date_str = datetime.now().strftime("%Y%m%d_%H%M")
+        report_file = REPORTS_DIR / f"flash_{slug}_{date_str}.md"
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write(md_content)
+        flash_data["report_path"] = str(report_file)
+    except Exception:
+        flash_data["report_path"] = "Generated in-memory (File write skipped)"
         
-    flash_data["report_path"] = str(report_file)
     return flash_data
 
 

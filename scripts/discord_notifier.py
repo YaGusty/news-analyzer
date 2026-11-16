@@ -62,7 +62,7 @@ def send_discord_payload(payload: dict, webhook_url: str = None) -> tuple[bool, 
 
 def format_forecast_embed(analysis: dict) -> dict:
     """
-    Format in-depth Pre-News Forecast into a high-signal Discord Embed.
+    Format in-depth Pre-News Forecast into a high-signal, mobile-friendly Discord Embed.
     """
     event_name = analysis.get("event", "US Macro Event")
     bkk_time = analysis.get("time_bkk", "-")
@@ -70,15 +70,17 @@ def format_forecast_embed(analysis: dict) -> dict:
     consensus = analysis.get("consensus", "-")
     previous = analysis.get("previous", "-")
     period = analysis.get("period", "")
+    tldr = analysis.get("tldr", "")
+    
+    desc_lines = []
+    if tldr:
+        desc_lines.append(f"> **{tldr}**\n")
+    desc_lines.append(f"📅 **เวลาประกาศ:** `{bkk_time}` (NY: `{ny_time}`)")
+    desc_lines.append(f"🎯 **Consensus:** `{consensus}` | **Previous:** `{previous}`")
     
     embed = {
         "title": f"🔴 [FORECAST] {event_name} {f'({period})' if period else ''}",
-        "description": (
-            f"**Macro Economic Briefing & Index Sensitivity Forecast**\n"
-            f"📅 **เวลาประกาศ:** {bkk_time}\n"
-            f"🏛️ **NY Time:** {ny_time}\n"
-            f"📊 **Consensus (คาดการณ์):** `{consensus}` | **Previous (ครั้งก่อน):** `{previous}`"
-        ),
+        "description": "\n".join(desc_lines),
         "color": COLOR_GOLD,
         "fields": [],
         "footer": {
@@ -86,25 +88,40 @@ def format_forecast_embed(analysis: dict) -> dict:
         }
     }
     
+    # 3-Scenario Forecast Matrix (Front and Center)
+    scenarios = []
+    if analysis.get("scenario_hot"):
+        scenarios.append(f"🔴 **Hot / Hawkish:** {analysis['scenario_hot']}")
+    if analysis.get("scenario_cool"):
+        scenarios.append(f"🟢 **Cool / Dovish:** {analysis['scenario_cool']}")
+    if analysis.get("scenario_inline"):
+        scenarios.append(f"🟡 **In-line / Mixed:** {analysis['scenario_inline']}")
+        
+    if scenarios:
+        embed["fields"].append({
+            "name": "🎯 3-Scenario Matrix (ฉากทัศน์ผลลัพธ์)",
+            "value": "\n\n".join(scenarios)[:1024],
+            "inline": False
+        })
+
     # Core Index Impacts
     if analysis.get("nas100_impact"):
         embed["fields"].append({
-            "name": "💻 NAS100 (NQ) Sensitivity",
+            "name": "💻 NAS100 (NQ) Tech Sensitivity",
             "value": analysis["nas100_impact"][:1024],
             "inline": False
         })
         
-    if analysis.get("sp500_impact"):
+    if analysis.get("sp500_impact") and analysis.get("dow_impact"):
+        embed["fields"].append({
+            "name": "📊 S&P 500 (ES) & 🏭 Dow (YM)",
+            "value": f"**ES:** {analysis['sp500_impact'][:500]}\n\n**YM:** {analysis['dow_impact'][:500]}"[:1024],
+            "inline": False
+        })
+    elif analysis.get("sp500_impact"):
         embed["fields"].append({
             "name": "📊 S&P 500 (ES) Sensitivity",
             "value": analysis["sp500_impact"][:1024],
-            "inline": False
-        })
-        
-    if analysis.get("dow_impact"):
-        embed["fields"].append({
-            "name": "🏭 Dow Jones (YM) Sensitivity",
-            "value": analysis["dow_impact"][:1024],
             "inline": False
         })
 
@@ -123,22 +140,6 @@ def format_forecast_embed(analysis: dict) -> dict:
             "inline": False
         })
         
-    # 3-Scenario Forecast Matrix
-    scenarios = []
-    if analysis.get("scenario_hot"):
-        scenarios.append(f"🔴 **Hot / Hawkish:** {analysis['scenario_hot']}")
-    if analysis.get("scenario_cool"):
-        scenarios.append(f"🟢 **Cool / Dovish:** {analysis['scenario_cool']}")
-    if analysis.get("scenario_inline"):
-        scenarios.append(f"🟡 **In-line / Mixed:** {analysis['scenario_inline']}")
-        
-    if scenarios:
-        embed["fields"].append({
-            "name": "🎯 Scenario Matrix & Deviation Forecast",
-            "value": "\n\n".join(scenarios)[:1024],
-            "inline": False
-        })
-        
     return {
         "username": "News Analyzer",
         "avatar_url": "https://img.icons8.com/color/96/bullish.png",
@@ -148,43 +149,47 @@ def format_forecast_embed(analysis: dict) -> dict:
 
 def format_flash_embed(flash_data: dict) -> dict:
     """
-    Format Post-News Flash analysis into a Discord Embed.
+    Format Post-News Flash analysis into an instant, high-contrast, mobile-first Discord Embed.
     """
     event_name = flash_data.get("event", "US Macro Event")
     actual = flash_data.get("actual", "-")
     consensus = flash_data.get("consensus", "-")
     previous = flash_data.get("previous", "-")
-    verdict = flash_data.get("verdict", "NEUTRAL")  # HAWKISH / DOVISH / MIXED
+    verdict = flash_data.get("verdict", "NEUTRAL")  # HAWKISH / DOVISH / IN-LINE
+    delta_str = flash_data.get("deviation_str", "-")
+    badge = flash_data.get("deviation_badge", verdict)
+    tldr = flash_data.get("tldr", "")
     
     color = COLOR_RED if verdict == "HAWKISH" else (COLOR_GREEN if verdict == "DOVISH" else COLOR_GOLD)
     verdict_emoji = "🔴" if verdict == "HAWKISH" else ("🟢" if verdict == "DOVISH" else "🟡")
     
+    # Compact ASCII Scoreboard
+    scoreboard = (
+        f"```text\n"
+        f"ACTUAL:    {actual:<10} ({verdict_emoji} {verdict})\n"
+        f"EXPECTED:  {consensus:<10} (Deviation: {delta_str})\n"
+        f"PREVIOUS:  {previous:<10}\n"
+        f"```"
+    )
+    
+    desc_lines = []
+    if tldr:
+        desc_lines.append(f"> **{tldr}**\n")
+    desc_lines.append(scoreboard)
+    
     embed = {
-        "title": f"⚡ [FLASH REPORT] {event_name} ออกแล้ว!",
-        "description": (
-            f"**ผลการประกาศตัวเลขเศรษฐกิจจริงเทียบกับคาดการณ์**\n"
-            f"• **Actual (ตัวเลขจริง):** **`{actual}`**\n"
-            f"• **Consensus (คาดการณ์):** `{consensus}`\n"
-            f"• **Previous (ครั้งก่อน):** `{previous}`\n"
-            f"• **Macro Verdict:** {verdict_emoji} **{verdict}**"
-        ),
+        "title": f"⚡ [FLASH REPORT] {event_name}: {badge}",
+        "description": "\n".join(desc_lines),
         "color": color,
         "fields": [],
         "footer": {
-            "text": "News Analyzer • Fast Flash Reaction"
+            "text": "News Analyzer • Instant Flash Macro Intelligence"
         }
     }
     
-    if flash_data.get("summary"):
-        embed["fields"].append({
-            "name": "📌 Key Takeaways & Economic Meaning",
-            "value": flash_data["summary"][:1024],
-            "inline": False
-        })
-        
     if flash_data.get("market_reaction"):
         embed["fields"].append({
-            "name": "📊 Index Reaction Dynamics (NQ, ES, YM)",
+            "name": "📊 Index Reaction Dynamics (NQ, ES, YM, DXY)",
             "value": flash_data["market_reaction"][:1024],
             "inline": False
         })
@@ -195,10 +200,17 @@ def format_flash_embed(flash_data: dict) -> dict:
             "value": flash_data["fed_outlook"][:1024],
             "inline": False
         })
+        
+    if flash_data.get("summary"):
+        embed["fields"].append({
+            "name": "📌 Economic Breakdown",
+            "value": flash_data["summary"][:1024],
+            "inline": False
+        })
 
     return {
         "username": "News Analyzer",
-        "avatar_url": "https://img.icons8.com/color/96/bullish.png",
+        "avatar_url": "https://img.icons8.com/color/96/flash-on.png",
         "embeds": [embed]
     }
 

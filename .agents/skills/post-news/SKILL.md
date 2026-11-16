@@ -1,9 +1,7 @@
 ---
 name: post-news
-description: "Use when analyzing the actual released numbers post-news and reporting market impacts to Discord (/post-news)."
-metadata:
-  hermes:
-    tags: [macro, flash, post-news, actual, reaction]
+description: >-
+  Use when analyzing the actual released economic numbers post-news and reporting market impacts to Discord.
 ---
 
 # post-news Skill
@@ -11,7 +9,7 @@ metadata:
 ใช้เมื่อตัวเลขเศรษฐกิจประกาศออกมาแล้ว และต้องการวิเคราะห์ด่วนทันที (Flash Analysis)
 
 ## คำสั่ง:
-`/post-news <EVENT> <ACTUAL>` เช่น `/post-news "CPI" 2.6%`, `/post-news "NFP" 150k`
+`post-news <EVENT> <ACTUAL>` เช่น `"CPI" 2.6%`, `"NFP" 150k`
 
 ## ขั้นตอนการทำงาน:
 1. รันสคริปต์ Flash Analysis:

@@ -1,9 +1,7 @@
 ---
 name: news-calendar
-description: "Use when checking upcoming US Red Folder economic news calendar (/calendar)."
-metadata:
-  hermes:
-    tags: [macro, calendar, news, red-folder, economic]
+description: >-
+  Use when checking upcoming US Red Folder economic news calendar or when the user asks to view or refresh the economic schedule.
 ---
 
 # news-calendar Skill

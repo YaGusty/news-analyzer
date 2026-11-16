@@ -1,9 +1,7 @@
 ---
 name: news-forecast
-description: "Use when analyzing and forecasting the macro impact of upcoming Red Folder news on NAS100, S&P 500, and Dow (/forecast)."
-metadata:
-  hermes:
-    tags: [macro, forecast, nas100, sp500, dow, scenario]
+description: >-
+  Use when analyzing and forecasting the macro impact of upcoming Red Folder news on NAS100, S&P 500, and Dow Jones.
 ---
 
 # news-forecast Skill
@@ -11,7 +9,7 @@ metadata:
 ใช้เมื่อต้องการวิเคราะห์เจาะลึกและคาดการณ์ผลกระทบของข่าวเศรษฐกิจก่อนประกาศจริง
 
 ## คำสั่ง:
-`/forecast <EVENT>` เช่น `/forecast CPI`, `/forecast NFP`, `/forecast "Retail Sales"`, `/forecast FOMC`
+`forecast <EVENT>` เช่น `CPI`, `NFP`, `"Retail Sales"`, `FOMC`
 
 ## ขั้นตอนการทำงาน:
 1. หากผู้ใช้ไม่ได้ระบุ event ให้ตรวจสอบตารางข่าวที่กำลังจะมาถึงจาก `python scripts/main.py calendar`

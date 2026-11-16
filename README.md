@@ -80,14 +80,14 @@ python scripts/main.py scheduler --daemon --interval 60
 
 ---
 
-## 🤖 คำสั่ง Slash Commands บน Hermes Agent
+## 🤖 การใช้งานร่วมกับ AI (Antigravity Workspace Skills)
 
-เมื่อใช้งานผ่าน Hermes Desktop สามารถสั่งงานได้ทันที:
-- `/calendar` — เรียกดูตารางข่าวกล่องแดง
-- `/forecast <EVENT>` — คาดการณ์และวิเคราะห์ผลกระทบ
-- `/post-news <EVENT> <ACTUAL>` — รายงานด่วนหลังตัวเลขออก
-- `/weekly-radar` — สรุปข่าวรอบสัปดาห์ยิงเข้า Discord
-- `/discord test` — ทดสอบการเชื่อมต่อ
+เมื่อใช้งานผ่าน Antigravity ระบบจะตรวจจับกฎของโปรเจกต์จาก `GEMINI.md` (หรือ `AGENTS.md`) และโหลด Skills จาก `.agents/skills/` โดยอัตโนมัติ:
+- `news-calendar` — ดูตารางข่าวกล่องแดงสัปดาห์นี้หรือวันนี้
+- `news-forecast` — วิเคราะห์เจาะลึกข่าวเศรษฐกิจล่วงหน้า
+- `post-news` — วิเคราะห์ด่วนหลังตัวเลขจริงออก
+- `weekly-radar` — ส่งสรุปตารางข่าวทั้งสัปดาห์เข้า Discord
+- `discord-alert` — ทดสอบและจัดการการแจ้งเตือน Discord
 
 ---
 
@@ -97,14 +97,17 @@ python scripts/main.py scheduler --daemon --interval 60
 news-analyzer/
 ├── .env                  # ตั้งค่า Discord Webhook URL
 ├── config.json           # การตั้งค่า Timezone, ดัชนีเป้าหมาย และ Keywords
-├── HERMES.md             # คู่มือและขอบเขตการทำงานของ AI ประจำโปรเจกต์
+├── GEMINI.md             # กฎและขอบเขตของโปรเจกต์สำหรับ Antigravity
+├── AGENTS.md             # กฎมาตรฐาน Multi-Agent Instructions
 ├── scripts/
 │   ├── calendar_fetcher.py # ดึงตารางข่าวและแคชข้อมูล
 │   ├── analyzer.py         # โมเดลวิเคราะห์มหภาคและ 3 ฉากทัศน์
 │   ├── discord_notifier.py # ส่งการแจ้งเตือนเข้า Discord Webhook
+│   ├── market_pulse.py     # ดึง Market Sentiment (DXY, US10Y, VIX)
+│   ├── alert_scheduler.py  # ระบบตั้งเวลาแจ้งเตือนก่อนข่าวออก
 │   └── main.py             # จุดรวมคำสั่ง Master CLI
 ├── data/
 │   ├── calendar/           # แคชตารางข่าวเศรษฐกิจ
 │   └── reports/            # บันทึกไฟล์บทวิเคราะห์ Markdown
-└── .hermes/skills/        # Hermes Slash Commands
+└── .agents/skills/       # Antigravity Workspace Skills
 ```

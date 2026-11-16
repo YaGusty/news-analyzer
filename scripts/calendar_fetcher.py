@@ -156,6 +156,9 @@ def fetch_from_forexfactory():
     normalized = []
     for item in raw_events:
         if item.get("country") == "USD":
+            actual_val = item.get("actual")
+            if actual_val == "" or actual_val is None:
+                actual_val = None
             normalized.append({
                 "id": f"ff_{item.get('title')}_{item.get('date')}",
                 "title": item.get("title"),
@@ -165,13 +168,143 @@ def fetch_from_forexfactory():
                 "impact": item.get("impact"),
                 "previous": item.get("previous"),
                 "forecast": item.get("forecast"),
-                "actual": None,
+                "actual": actual_val,
                 "date": item.get("date"),
                 "comment": "ForexFactory High Impact Event",
                 "source": "ForexFactory",
                 "source_url": "https://www.forexfactory.com/calendar"
             })
     return normalized
+
+
+def calculate_deviation(actual_val, forecast_val) -> dict:
+    """
+    Calculate numerical difference (Actual - Forecast) and determine if BEAT / MISS / IN_LINE.
+    Handles '%', 'k', 'K', 'M', 'B', etc.
+    """
+    if actual_val is None or forecast_val is None:
+        return {"delta": None, "delta_str": "-", "direction": "UNKNOWN"}
+        
+    s_act = str(actual_val).strip()
+    s_fc = str(forecast_val).strip()
+    
+    if not s_act or not s_fc or s_act in ("-", "N/A") or s_fc in ("-", "N/A"):
+        return {"delta": None, "delta_str": "-", "direction": "UNKNOWN"}
+        
+    try:
+        suffix = ""
+        for u in ("%", "k", "K", "M", "B", "T"):
+            if u in s_act or u in s_fc:
+                suffix = u
+                break
+                
+        def clean_num(s):
+            for ch in ("%", "k", "K", "M", "B", "T", ",", " "):
+                s = s.replace(ch, "")
+            return float(s)
+            
+        n_act = clean_num(s_act)
+        n_fc = clean_num(s_fc)
+        delta = n_act - n_fc
+        
+        if abs(delta) >= 10:
+            delta_str = f"{delta:+.0f}{suffix}"
+        elif abs(delta) >= 1:
+            delta_str = f"{delta:+.1f}{suffix}"
+        else:
+            delta_str = f"{delta:+.2f}{suffix}"
+            
+        tolerance = 0.05 * abs(n_fc if n_fc != 0 else 1)
+        if abs(delta) < tolerance:
+            direction = "IN_LINE"
+        elif delta > 0:
+            direction = "BEAT"
+        else:
+            direction = "MISS"
+            
+        return {
+            "delta": delta,
+            "delta_str": delta_str,
+            "direction": direction,
+            "actual_num": n_act,
+            "forecast_num": n_fc,
+            "suffix": suffix
+        }
+    except Exception:
+        return {"delta": None, "delta_str": "-", "direction": "UNKNOWN"}
+
+
+def fetch_actual_fast(event_title=None) -> dict:
+    """
+    High-speed, low-timeout fetch specifically designed to check recent actual releases.
+    Bypasses standard 3-hour cache and merges any newly found actual into the cache.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Origin": "https://www.tradingview.com",
+        "Referer": "https://www.tradingview.com/",
+    }
+    now = datetime.now(timezone.utc)
+    start_dt = (now - timedelta(hours=2)).strftime("%Y-%m-%dT00:00:00.000Z")
+    end_dt = (now + timedelta(hours=2)).strftime("%Y-%m-%dT23:59:59.000Z")
+    
+    params = {
+        "from": start_dt,
+        "to": end_dt,
+        "countries": "US",
+    }
+    
+    new_actuals = {}
+    
+    # 1. Fast check TradingView
+    try:
+        url = "https://economic-calendar.tradingview.com/events"
+        resp = requests.get(url, headers=headers, params=params, timeout=4)
+        if resp.status_code == 200:
+            for item in resp.json().get("result", []):
+                act = item.get("actual")
+                if act is not None and str(act).strip() != "":
+                    t = item.get("title", "").strip().lower()
+                    new_actuals[t] = act
+    except Exception:
+        pass
+        
+    # 2. Fast check ForexFactory if TradingView has no actuals
+    if not new_actuals:
+        try:
+            ff_headers = {"User-Agent": "Mozilla/5.0"}
+            ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+            ff_resp = requests.get(ff_url, headers=ff_headers, timeout=4)
+            if ff_resp.status_code == 200:
+                for item in ff_resp.json():
+                    if item.get("country") == "USD":
+                        act = item.get("actual")
+                        if act is not None and str(act).strip() != "":
+                            t = item.get("title", "").strip().lower()
+                            new_actuals[t] = act
+        except Exception:
+            pass
+            
+    # Update cache_events.json in-place
+    if new_actuals and CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                cached_data = json.load(f)
+            updated = False
+            for item in cached_data:
+                t = item.get("title", "").strip().lower()
+                for match_title, act_val in new_actuals.items():
+                    if match_title in t or t in match_title:
+                        if item.get("actual") != act_val:
+                            item["actual"] = act_val
+                            updated = True
+            if updated:
+                with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                    json.dump(cached_data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+            
+    return new_actuals
 
 
 def get_calendar_events(force_refresh=False, high_only=True):
@@ -182,6 +315,34 @@ def get_calendar_events(force_refresh=False, high_only=True):
     cache_duration_secs = config.get("cache_duration_hours", 3) * 3600
     cache_valid = False
     raw_events = []
+    
+    if not force_refresh and CACHE_FILE.exists():
+        try:
+            mtime = CACHE_FILE.stat().st_mtime
+            if time.time() - mtime < cache_duration_secs:
+                with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                    raw_events = json.load(f)
+                    cache_valid = True
+        except Exception:
+            cache_valid = False
+
+    # Proactive Live Sniping: If cache is valid but an event occurred recently (<30 mins) without actual, check fast
+    if not force_refresh and cache_valid and raw_events:
+        now_ts = datetime.now(timezone.utc).timestamp()
+        needs_quick_check = False
+        for it in raw_events:
+            dt = parse_date_to_utc(it.get("date", "")).timestamp()
+            if 0 <= (now_ts - dt) <= 1800 and it.get("actual") is None:
+                needs_quick_check = True
+                break
+        if needs_quick_check:
+            new_acts = fetch_actual_fast()
+            if new_acts:
+                try:
+                    with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                        raw_events = json.load(f)
+                except Exception:
+                    pass
     
     if not force_refresh and CACHE_FILE.exists():
         try:

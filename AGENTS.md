@@ -23,23 +23,34 @@
   - `calendar_fetcher.py` — ดึงตารางข่าวกล่องแดง (Red Folder) USD อัตโนมัติ พร้อม Cache และแปลงเวลาไทย/NY
   - `analyzer.py` — วิเคราะห์เจาะลึก 3 Scenarios (Hot / Cool / In-line) และประเมิน NQ, ES, YM
   - `discord_notifier.py` — จัดรูปแบบ Discord Embeds สวยงาม พร้อมส่งผ่าน Discord Webhook
+  - `market_pulse.py` — ดึงข้อมูล Sentiment / Market Pulse (DXY, US10Y, VIX, NQ, ES, YM)
+  - `alert_scheduler.py` — ระบบตั้งเวลาตรวจจับและแจ้งเตือนล่วงหน้าก่อนข่าวออก
   - `main.py` — Master CLI จัดการทุกฟังก์ชัน
 - `data/`:
   - `calendar/` — แคชตารางข่าวเศรษฐกิจ
   - `reports/` — รายงานวิเคราะห์คาดการณ์ (Forecast) และรายงานหลังข่าวออก (Flash Report) ในรูปแบบ Markdown
-- `.hermes/skills/`:
-  - `news-calendar` (`/calendar`) — ดูตารางข่าวกล่องแดงวันนี้ / สัปดาห์นี้
-  - `news-forecast` (`/forecast <event>`) — หาข้อมูลและวิเคราะห์คาดการณ์ 3 ฉากทัศน์
-  - `post-news` (`/post-news <event> <actual>`) — วิเคราะห์ผลตัวเลขจริงทันทีหลังประกาศ
-  - `weekly-radar` (`/weekly-radar`) — ส่งสรุปภาพรวมข่าวสำคัญทั้งสัปดาห์เข้า Discord
-  - `discord-alert` (`/discord`) — ทดสอบหรือส่งการแจ้งเตือนเข้า Discord
+- `.agents/skills/`:
+  - `news-calendar` — ดูตารางข่าวกล่องแดงวันนี้ / สัปดาห์นี้
+  - `news-forecast` — หาข้อมูลและวิเคราะห์คาดการณ์ 3 ฉากทัศน์
+  - `post-news` — วิเคราะห์ผลตัวเลขจริงทันทีหลังประกาศ
+  - `weekly-radar` — ส่งสรุปภาพรวมข่าวสำคัญทั้งสัปดาห์เข้า Discord
+  - `discord-alert` — ทดสอบหรือส่งการแจ้งเตือนเข้า Discord
 - `.env`:
   - ตั้งค่า `DISCORD_WEBHOOK_URL` สำหรับส่งการแจ้งเตือน
 
-## Slash Commands & Workflows
+## Workflows & CLI Commands
 
-1. **`/calendar`**: ตรวจสอบตารางข่าวกล่องแดงสัปดาห์นี้หรือวันนี้
-2. **`/forecast <event>`**: วิเคราะห์เจาะลึกข่าว เช่น `/forecast CPI` หรือ `/forecast "Retail Sales"`
-3. **`/post-news <event> <actual>`**: วิเคราะห์ด่วนหลังตัวเลขออก เช่น `/post-news "CPI" 2.6%`
-4. **`/weekly-radar`**: ดึงตารางข่าวทั้งสัปดาห์และยิงสรุปเข้า Discord
-5. **`/discord test`**: ทดสอบการเชื่อมต่อ Discord Webhook
+1. **ตรวจสอบตารางข่าวกล่องแดง:**
+   - ทั้งสัปดาห์: `python scripts/main.py calendar`
+   - วันนี้: `python scripts/main.py calendar --today`
+   - รีเฟรชและส่ง Discord: `python scripts/main.py calendar --discord --refresh`
+2. **วิเคราะห์เจาะลึกข่าวล่วงหน้า (Forecast):**
+   - วิเคราะห์: `python scripts/main.py forecast "<EVENT>"`
+   - ส่ง Discord: `python scripts/main.py forecast "<EVENT>" --discord`
+   - กำหนด Consensus/Previous: `python scripts/main.py forecast "<EVENT>" --consensus "2.6%" --previous "2.4%" --discord`
+3. **วิเคราะห์ด่วนหลังตัวเลขออก (Post-News Flash):**
+   - วิเคราะห์และส่ง Discord: `python scripts/main.py flash "<EVENT>" "<ACTUAL>" --discord`
+4. **Market Pulse:**
+   - เช็คบรรยากาศตลาดและพันธบัตร: `python scripts/main.py pulse`
+5. **Discord Alert Test:**
+   - ทดสอบการเชื่อมต่อ: `python scripts/main.py test-discord`
