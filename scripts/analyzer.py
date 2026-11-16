@@ -139,6 +139,127 @@ EVENT_KNOWLEDGE = {
 }
 
 
+MEMORY_FILE = PROJECT_ROOT / "data" / "calendar" / "macro_memory.json"
+
+# Macro Causal Chain Reaction Map (การคิดวิเคราะห์เชิงลูกโซ่เศรษฐกิจ / Domino Effect)
+MACRO_CHAIN_MAP = {
+    "cpi": {
+        "depends_on": ["ppi", "nonfarm", "oil"],
+        "leads_to": ["fomc", "pce"],
+        "forward_prompt": "ตัวเลข CPI นี้จะส่งผลต่อการตัดสินใจเรื่อง Dot Plot ในการประชุม FOMC และตัวเลข Core PCE อย่างมีนัยสำคัญ",
+        "backward_prompt": "พิจารณาการส่งผ่านต้นทุนจาก PPI รอบก่อนหน้า และค่าจ้างแรงงานจาก NFP เป็นตัวเร่งเงินเฟ้อภาคบริการ"
+    },
+    "pce": {
+        "depends_on": ["cpi", "ppi"],
+        "leads_to": ["fomc"],
+        "forward_prompt": "Core PCE เป็นเป้าหมายทางการ 2% ของ Fed ผลลัพธ์นี้จะล็อกท่าทีของประธาน Powell ในการประชุม FOMC ทันที",
+        "backward_prompt": "Core PCE สะท้อนไส้ในของ CPI และ PPI โดยเฉพาะค่ารักษาพยาบาลและค่าบริการการเงิน"
+    },
+    "ppi": {
+        "depends_on": ["ism manufacturing", "crude oil"],
+        "leads_to": ["cpi", "pce"],
+        "forward_prompt": "PPI เป็นดัชนีชี้นำ (Leading Indicator) ที่จะส่งผ่านต้นทุนไปยัง CPI ในอีก 1–2 เดือนข้างหน้า",
+        "backward_prompt": "สะท้อนแรงกดดันด้านซัพพลายเชนและต้นทุนวัตถุดิบ/พลังงาน"
+    },
+    "retail sales": {
+        "depends_on": ["nonfarm", "cpi"],
+        "leads_to": ["gdp", "fomc"],
+        "forward_prompt": "ยอดค้าปลีกสะท้อน 70% ของ GDP หากยังคงแข็งแกร่ง จะลดความจำเป็นที่ Fed ต้องรีบผ่อนคลายนโยบายการเงินในการประชุม FOMC",
+        "backward_prompt": "กำลังซื้อของผู้บริโภคขึ้นอยู่กับอัตราการจ้างงานและค่าจ้างจริง (Real Wages หลังหักเงินเฟ้อ)"
+    },
+    "nonfarm": {
+        "depends_on": ["initial jobless claims", "ism"],
+        "leads_to": ["retail sales", "cpi", "fomc"],
+        "forward_prompt": "การเติบโตของค่าจ้าง (Hourly Earnings) จะส่งไม้ต่อไปยังยอดค้าปลีกและเงินเฟ้อภาคบริการ (SuperCore Inflation)",
+        "backward_prompt": "ดูสัญญาณชี้นำล่วงหน้าจากยอดผู้ขอรับสวัสดิการว่างงานรายสัปดาห์ (Initial Jobless Claims)"
+    },
+    "fomc": {
+        "depends_on": ["cpi", "pce", "nonfarm", "retail sales", "gdp"],
+        "leads_to": ["nas100", "sp500", "dow", "dxy", "us10y"],
+        "forward_prompt": "การตัดสินใจของ Fed และ Dot Plot จะกำหนดทิศทางสภาพคล่องและ Discount Rate ของตลาดหุ้นทั่วโลกทั้งไตรมาส",
+        "backward_prompt": "Fed ชั่งน้ำหนักระหว่างเงินเฟ้อ (CPI/PCE) ที่ยังหนืด กับการชะลอตัวของตลาดแรงงาน (NFP) เพื่อหาจุดสมดุล Soft Landing"
+    },
+    "initial jobless claims": {
+        "depends_on": [],
+        "leads_to": ["nonfarm", "fomc"],
+        "forward_prompt": "ตัวเลขความถี่สูงรายสัปดาห์นี้จะส่งสัญญาณล่วงหน้าไปยังรายงานตัวเลขจ้างงาน NFP ประจำเดือน",
+        "backward_prompt": "สะท้อนความตึงตัวของตลาดแรงงานแบบ Real-Time"
+    },
+    "gdp": {
+        "depends_on": ["retail sales", "trade balance"],
+        "leads_to": ["fomc"],
+        "forward_prompt": "หาก GDP ยังเติบโตเหนือแนวโน้มระยะยาว (Potential Growth) จะหนุนธีม No Landing และเปิดทางให้ Fed ตรึงดอกเบี้ยนานขึ้น",
+        "backward_prompt": "ขับเคลื่อนด้วยการใช้จ่ายของผู้บริโภค (Retail Sales) และการลงทุนภาคธุรกิจ"
+    }
+}
+
+
+def load_macro_memory() -> list:
+    """Load chronologically stored macro events with their actual outcomes."""
+    if MEMORY_FILE.exists():
+        try:
+            with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+
+def record_macro_memory(entry: dict):
+    """Save an event release outcome to memory for future critical thinking."""
+    try:
+        mem = load_macro_memory()
+        evt_name = entry.get("event", "")
+        mem = [m for m in mem if m.get("event") != evt_name]
+        mem.append(entry)
+        mem = mem[-30:]
+        MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            json.dump(mem, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def synthesize_domino_thinking(event_name: str) -> str:
+    """Synthesize critical thinking connecting past data memory to this upcoming event."""
+    title_lower = event_name.lower()
+    mem = load_macro_memory()
+    
+    matched_key = None
+    for k in MACRO_CHAIN_MAP:
+        if k in title_lower:
+            matched_key = k
+            break
+            
+    chain_cfg = MACRO_CHAIN_MAP.get(matched_key, {})
+    depends_on = chain_cfg.get("depends_on", [])
+    
+    past_evidence = []
+    for m in reversed(mem):
+        m_evt = m.get("event", "").lower()
+        for dep in depends_on:
+            if dep in m_evt:
+                verdict = m.get("verdict", "")
+                actual = m.get("actual", "")
+                past_evidence.append(f"• 📜 ข้อมูลก่อนหน้า **{m.get('event')}** (`{actual}` - {verdict}): {m.get('domino_forward', '')}")
+                break
+        if len(past_evidence) >= 2:
+            break
+            
+    points = []
+    if past_evidence:
+        points.extend(past_evidence)
+    if chain_cfg.get("backward_prompt"):
+        points.append(f"• 🔗 **ความเชื่อมโยงต้นน้ำ:** {chain_cfg['backward_prompt']}")
+    if chain_cfg.get("forward_prompt"):
+        points.append(f"• 🎯 **เป้าหมายปลายน้ำ:** {chain_cfg['forward_prompt']}")
+        
+    if not points:
+        return "ติดตามความต่อเนื่องของข้อมูลเศรษฐกิจเพื่อประเมินจุดเปลี่ยนของนโยบายการเงิน Fed"
+        
+    return "\n".join(points)
+
+
 def match_knowledge_entry(event_title: str) -> dict:
     """Find matching knowledge entry by keywords."""
     title_lower = event_title.lower()
@@ -205,6 +326,9 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
     else:
         tldr = f"📊 สรุปจุดโฟกัส: ติดตามตัวเลขจริงเทียบคาดการณ์ `{consensus_val}` เพื่อจับทิศทาง Dollar Index (DXY) และพันธบัตรสหรัฐฯ (US10Y)"
     
+    # Synthesize Causal Chain Reaction (Domino Critical Thinking)
+    domino_thinking = synthesize_domino_thinking(event_name)
+    
     analysis = {
         "event": kb["full_name"],
         "category": kb["category"],
@@ -214,6 +338,7 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "consensus": consensus_val,
         "previous": previous_val,
         "tldr": tldr,
+        "domino_thinking": domino_thinking,
         "description": kb["description"],
         "nas100_impact": kb["nas100"],
         "sp500_impact": kb["sp500"],
@@ -226,6 +351,32 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "scenario_inline": kb["inline_direction"],
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
+    
+    md_content = f"""# 🔴 Pre-News Forecast: {kb['full_name']} {f'({period})' if period else ''}
+
+- **เวลาประกาศ (BKK):** {time_bkk} (New York: {time_ny})
+- **Consensus:** `{consensus_val}` | **Previous:** `{previous_val}`
+
+## 📌 TL;DR Focus
+> {tldr}
+
+## 🧠 Domino Critical Thinking (การเชื่อมโยงลูกโซ่เศรษฐกิจ)
+{domino_thinking}
+
+## 🎯 3-Scenario Matrix
+- **🔴 Hot / Hawkish:** {kb['hot_direction']}
+- **🟢 Cool / Dovish:** {kb['cool_direction']}
+- **🟡 In-line / Mixed:** {kb['inline_direction']}
+
+## 📊 Market Impact Sensitivity
+- **💻 NAS100 (NQ):** {kb['nas100']}
+- **📈 S&P 500 (ES):** {kb['sp500']}
+- **🏭 Dow Jones (YM):** {kb['dow']}
+- **🌐 Intermarket:** {kb['intermarket']}
+
+---
+*Generated by News Analyzer at {analysis['generated_at']}*
+"""
     
     # Save markdown report (resilient to filesystem permissions)
     try:
@@ -309,6 +460,39 @@ def analyze_flash(event_name: str, actual: str, consensus: str = None, previous:
     
     market_reaction = f"{nq_impact}\n{es_impact}\n{ym_impact}\n{intermarket_impact}"
 
+    # Forward Domino Synthesis (Critical Chain Reaction)
+    title_lower = event_name.lower()
+    matched_key = None
+    for k in MACRO_CHAIN_MAP:
+        if k in title_lower:
+            matched_key = k
+            break
+            
+    chain_cfg = MACRO_CHAIN_MAP.get(matched_key, {})
+    leads_to = chain_cfg.get("leads_to", [])
+    leads_to_str = ", ".join([l.upper() for l in leads_to]) if leads_to else "การตัดสินใจของ Fed และภาพรวมตลาด"
+    forward_prompt = chain_cfg.get("forward_prompt", "ส่งผลต่อการประเมินทิศทางนโยบายการเงินในภาพรวม")
+    
+    if verdict == "HAWKISH":
+        domino_forward = f"⚠️ ตัวเลขร้อนกว่าคาด ({delta_str}) เพิ่มแรงกดดันส่งต่อสู่ **{leads_to_str}** — {forward_prompt}"
+    elif verdict == "DOVISH":
+        domino_forward = f"🌱 ตัวเลขชะลอตัวลง ({delta_str}) ช่วยผ่อนคลายแรงกดดันส่งต่อสู่ **{leads_to_str}** — {forward_prompt}"
+    else:
+        domino_forward = f"⚖️ ตัวเลขเป็นไปตามคาด ({delta_str}) ส่งไม้ต่อสู่ **{leads_to_str}** โดยยังคงมุมมองเดิม — {forward_prompt}"
+        
+    # Save to Macro Memory for future domino thinking
+    record_macro_memory({
+        "event": kb["full_name"],
+        "actual": actual,
+        "consensus": consensus_val,
+        "previous": previous_val,
+        "verdict": verdict,
+        "delta_str": delta_str,
+        "leads_to": leads_to,
+        "domino_forward": domino_forward,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
     flash_data = {
         "event": kb["full_name"],
         "actual": actual,
@@ -319,6 +503,7 @@ def analyze_flash(event_name: str, actual: str, consensus: str = None, previous:
         "verdict": verdict,
         "tldr": tldr,
         "summary": summary,
+        "domino_forward": domino_forward,
         "market_reaction": market_reaction,
         "nq_impact": nq_impact,
         "es_impact": es_impact,
@@ -327,6 +512,34 @@ def analyze_flash(event_name: str, actual: str, consensus: str = None, previous:
         "fed_outlook": fed_outlook,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
+    
+    md_content = f"""# ⚡ Flash Report: {kb['full_name']}
+**Verdict:** {deviation_badge}
+
+```text
+ACTUAL:    {actual}
+EXPECTED:  {consensus_val} (Diff: {delta_str})
+PREVIOUS:  {previous_val}
+```
+
+## 📌 TL;DR
+> {tldr}
+
+## 🔗 Forward Domino Impact (ส่งไม้ต่อให้ข่าวถัดไป)
+{domino_forward}
+
+## 📊 Index Reaction Dynamics
+- **💻 NQ (Tech):** {nq_impact}
+- **📈 ES (S&P 500):** {es_impact}
+- **🏭 YM (Dow):** {ym_impact}
+- **🌐 Intermarket:** {intermarket_impact}
+
+## 🏛️ Fed Policy Outlook
+{fed_outlook}
+
+---
+*Generated by News Analyzer at {flash_data['generated_at']}*
+"""
     
     # Save markdown report (resilient to filesystem permissions)
     try:
@@ -373,6 +586,9 @@ def main():
         print(f"Time (BKK): {analysis['time_bkk']} | NY: {analysis['time_ny']}")
         print(f"Consensus: {analysis['consensus']} | Previous: {analysis['previous']}")
         print(f"Report saved: {analysis['report_path']}")
+        if analysis.get('domino_thinking'):
+            print("\n--- 🧠 Domino Critical Thinking ---")
+            print(analysis['domino_thinking'])
         print("\n--- NAS100 Sensitivity ---")
         print(analysis['nas100_impact'])
         print("\n--- 3-Scenario Matrix ---")
@@ -390,6 +606,9 @@ def main():
         print(f"\n[OK] Flash Report generated for: {flash_data['event']}")
         print(f"Actual: {flash_data['actual']} vs Exp: {flash_data['consensus']} (Verdict: {flash_data['verdict']})")
         print(f"Report saved: {flash_data['report_path']}")
+        if flash_data.get('domino_forward'):
+            print("\n--- 🔗 Forward Domino Impact ---")
+            print(flash_data['domino_forward'])
         print("\n--- Market Reaction ---")
         print(flash_data['market_reaction'])
         

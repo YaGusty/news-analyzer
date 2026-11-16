@@ -5,6 +5,7 @@
 # Cache & Runtime Data
 data/calendar/cache_events.json
 data/calendar/alert_history.json
+data/reports/*.md
 __pycache__/
 *.pyc
 

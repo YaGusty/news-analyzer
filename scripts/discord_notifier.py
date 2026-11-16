@@ -104,6 +104,14 @@ def format_forecast_embed(analysis: dict) -> dict:
             "inline": False
         })
 
+    # Domino Critical Thinking (Macro Causal Chain)
+    if analysis.get("domino_thinking"):
+        embed["fields"].append({
+            "name": "🧠 Domino Critical Thinking (การเชื่อมโยงลูกโซ่เศรษฐกิจ)",
+            "value": analysis["domino_thinking"][:1024],
+            "inline": False
+        })
+
     # Core Index Impacts
     if analysis.get("nas100_impact"):
         embed["fields"].append({
@@ -198,6 +206,13 @@ def format_flash_embed(flash_data: dict) -> dict:
         embed["fields"].append({
             "name": "🏛️ Fed Interest Rate Expectation Shift",
             "value": flash_data["fed_outlook"][:1024],
+            "inline": False
+        })
+
+    if flash_data.get("domino_forward"):
+        embed["fields"].append({
+            "name": "🔗 Forward Domino Impact (ส่งไม้ต่อให้ข่าวถัดไป)",
+            "value": flash_data["domino_forward"][:1024],
             "inline": False
         })
         

@@ -75,6 +75,10 @@ def run_forecast_cmd(args):
     print(f"🟢 Cool:   {analysis['scenario_cool']}")
     print(f"🟡 Inline: {analysis['scenario_inline']}")
     
+    if analysis.get('domino_thinking'):
+        print("\n[🧠 Domino Critical Thinking]")
+        print(analysis['domino_thinking'])
+    
     if args.discord:
         print("\nDispatching Forecast Embed to Discord...")
         payload = format_forecast_embed(analysis)
@@ -99,6 +103,8 @@ def run_flash_cmd(args):
         print(f"\n{flash['tldr']}")
     print(f"Markdown Report: {flash['report_path']}")
     print(f"\n[Summary]\n{flash['summary']}")
+    if flash.get('domino_forward'):
+        print(f"\n[🔗 Forward Domino Impact]\n{flash['domino_forward']}")
     print(f"\n[Market Reaction Dynamics]\n{flash['market_reaction']}")
     print(f"\n[Fed Rate Path]\n{flash['fed_outlook']}")
     
