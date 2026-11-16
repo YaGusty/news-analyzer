@@ -134,23 +134,66 @@ def check_and_send_pre_news_alerts(events: list, history: dict, webhook_url: str
     return sent_count
 
 
-def get_sniping_interval(events: list, default_interval: int = 60) -> int:
+def get_adaptive_interval(events: list, default_interval: int = 60) -> tuple[int, str]:
     """
-    Check if any Red Folder news is within [-2 minutes, +10 minutes] of release.
-    If so, return 5 seconds (Turbo Sniping Mode) to catch numbers instantly.
-    Otherwise return default_interval.
+    Calculate dynamic sleep interval based on user specifications:
+    1. ช่วงข่าวออก ([-3 mins, +3 mins]): เช็คทุก 5 วินาที (Active Sniping)
+    2. ก่อนข่าวออก 1 ชม. ([-60 mins, -3 mins]): เช็คทุก 5 นาที (300 วินาที)
+    3. เวลาปกติ (ไม่มีข่าวใน 1 ชม.): เช็คทุก 15 นาที หรือคำนวณจนถึง T-60m
+    
+    Returns: (sleep_seconds, mode_description)
     """
     now_ts = datetime.now(timezone.utc).timestamp()
-    for e in events:
-        if not e.get("is_red_folder"):
-            continue
+    rf_events = [e for e in events if e.get("is_red_folder")]
+    if not rf_events:
+        return 900, "IDLE (No Red Folder events found | Sleep 15m)"
+        
+    nearest_diff = None
+    nearest_event = None
+    
+    for e in rf_events:
         e_ts = e.get("timestamp_utc", 0)
-        diff_secs = now_ts - e_ts
-        # From 120s before release until 600s after release
-        if -120 <= diff_secs <= 600:
+        diff = now_ts - e_ts  # negative = upcoming, positive = passed
+        
+        # 1. Active Sniping Window: 3 mins before (-180s) to 3 mins after (+180s)
+        if -180 <= diff <= 180:
             if e.get("actual") is None:
-                return 5
-    return default_interval
+                return 5, f"🚀 SNIPING (Active News Window: {e['title']} | T{diff:+.0f}s | Poll every 5s)"
+                
+        # If slightly delayed (3 to 10 mins after release) and still awaiting actual
+        if 180 < diff <= 600 and e.get("actual") is None:
+            return 10, f"⏳ SNIPING_DELAYED (Waiting for delayed actual: {e['title']} | T+{diff:.0f}s | Poll every 10s)"
+            
+        # Find next upcoming event
+        if diff < 0:
+            if nearest_diff is None or diff > nearest_diff:
+                nearest_diff = diff
+                nearest_event = e
+
+    # 2. Pre-News Watch Window: 1 hour before (-3600s) to 3 mins before (-180s)
+    if nearest_diff is not None:
+        secs_until = abs(nearest_diff)
+        mins_until = secs_until / 60
+        
+        if 180 < secs_until <= 3600:
+            # Within 1 hour before news: check every 5 minutes (300s)
+            # Ensure we do not sleep past the start of the 3-minute sniping window
+            sleep_time = min(300, max(5, int(secs_until - 180)))
+            return sleep_time, f"👀 PRE_NEWS (Next: {nearest_event['title']} in {mins_until:.1f}m | Check every 5m)"
+            
+        # More than 1 hour away:
+        # Sleep until T-60m window starts, capped at 15 minutes (900s) to keep schedule fresh
+        secs_until_t60 = secs_until - 3600
+        sleep_time = min(900, max(60, int(secs_until_t60)))
+        return sleep_time, f"💤 NORMAL (Next: {nearest_event['title']} in {mins_until:.1f}m | Sleep {sleep_time//60}m)"
+
+    return 900, "IDLE (All today's events completed | Sleep 15m)"
+
+
+def get_sniping_interval(events: list, default_interval: int = 60) -> int:
+    """Compatibility wrapper returning integer sleep seconds."""
+    secs, _ = get_adaptive_interval(events, default_interval)
+    return secs
 
 
 def check_and_send_post_news_flashes(events: list, history: dict, webhook_url: str = None) -> int:
@@ -219,7 +262,7 @@ def run_scheduler_tick(webhook_url: str = None) -> dict:
     pre_count = check_and_send_pre_news_alerts(events, history, webhook_url)
     flash_count = check_and_send_post_news_flashes(events, history, webhook_url)
     
-    turbo_needed = get_sniping_interval(events) <= 10
+    sleep_secs, mode_desc = get_adaptive_interval(events)
     
     return {
         "status": "ok",
@@ -227,15 +270,16 @@ def run_scheduler_tick(webhook_url: str = None) -> dict:
         "pre_alerts_sent": pre_count,
         "flash_alerts_sent": flash_count,
         "events_monitored": len(events),
-        "turbo_sniping": turbo_needed
+        "adaptive_interval": sleep_secs,
+        "mode": mode_desc
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Automated Alert Scheduler for News Analyzer")
     parser.add_argument("--check-once", action="store_true", help="Run a single check and exit")
-    parser.add_argument("--daemon", action="store_true", help="Run continuous background loop with Turbo Sniping")
-    parser.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default: 60s)")
+    parser.add_argument("--daemon", action="store_true", help="Run continuous background loop with Adaptive Timing")
+    parser.add_argument("--interval", type=int, default=60, help="Default interval in seconds (default: 60s)")
     parser.add_argument("--send-weekly", action="store_true", help="Force send weekly radar now")
     parser.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL")
     args = parser.parse_args()
@@ -248,28 +292,28 @@ def main():
         
     if args.check_once:
         result = run_scheduler_tick(args.webhook)
-        print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} (Turbo Sniping: {result['turbo_sniping']})")
+        print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} | Mode: {result['mode']}")
         return
         
     if args.daemon:
-        print(f"[*] Starting News Analyzer Alert Daemon (Dynamic Sniping Mode)...")
-        print(f"    • Standard interval: {args.interval}s")
-        print(f"    • Turbo Sniping: 5s (during T-2m to T+10m news window)")
+        print(f"[*] Starting News Analyzer Alert Daemon (Adaptive News Timing Engine)...")
+        print(f"    • 🚀 Active Sniping Window ([-3m, +3m]): Poll every 5s")
+        print(f"    • 👀 Pre-News Window ([-60m, -3m]): Check every 5m")
+        print(f"    • 💤 Normal Idle Window (> 1h): Sleep up to 15m")
         print("Press Ctrl+C to stop.\n")
         try:
             while True:
                 result = run_scheduler_tick(args.webhook)
                 events = get_calendar_events(high_only=True)
-                sleep_secs = get_sniping_interval(events, default_interval=args.interval)
-                if sleep_secs <= 10:
-                    print(f"[{datetime.now(BKK_TZ).strftime('%H:%M:%S')}] 🚀 [TURBO SNIPING] High-speed actual polling every {sleep_secs}s...")
+                sleep_secs, mode_desc = get_adaptive_interval(events, default_interval=args.interval)
+                print(f"[{datetime.now(BKK_TZ).strftime('%H:%M:%S')}] {mode_desc}")
                 time.sleep(sleep_secs)
         except KeyboardInterrupt:
             print("\n[!] Daemon stopped by user.")
     else:
         # Default behavior: run check-once
         result = run_scheduler_tick(args.webhook)
-        print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} (Turbo Sniping: {result['turbo_sniping']})")
+        print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} | Mode: {result['mode']}")
 
 
 if __name__ == "__main__":

@@ -175,27 +175,27 @@ def main():
         else:
             print(f"\n{format_pulse_text(pulse)}\n")
     elif args.command == "scheduler":
-        from scripts.alert_scheduler import run_scheduler_tick, get_sniping_interval, get_calendar_events, BKK_TZ
+        from scripts.alert_scheduler import run_scheduler_tick, get_adaptive_interval, get_calendar_events, BKK_TZ
         from datetime import datetime
         import time
         if args.daemon:
-            print(f"[*] Starting News Analyzer Alert Daemon (Dynamic Turbo Sniping Mode)...")
-            print(f"    • Standard interval: {args.interval}s")
-            print(f"    • Turbo Sniping interval: 5s (during T-2m to T+10m news window)")
+            print(f"[*] Starting News Analyzer Alert Daemon (Adaptive News Timing Engine)...")
+            print(f"    • 🚀 Active Sniping Window ([-3m, +3m]): Poll every 5s")
+            print(f"    • 👀 Pre-News Window ([-60m, -3m]): Check every 5m")
+            print(f"    • 💤 Normal Idle Window (> 1h): Sleep up to 15m")
             print("Press Ctrl+C to stop.\n")
             try:
                 while True:
                     result = run_scheduler_tick(args.webhook)
                     events = get_calendar_events(high_only=True)
-                    sleep_secs = get_sniping_interval(events, default_interval=args.interval)
-                    if sleep_secs <= 10:
-                        print(f"[{datetime.now(BKK_TZ).strftime('%H:%M:%S')}] 🚀 [TURBO SNIPING] Polling actual release every {sleep_secs}s...")
+                    sleep_secs, mode_desc = get_adaptive_interval(events, default_interval=args.interval)
+                    print(f"[{datetime.now(BKK_TZ).strftime('%H:%M:%S')}] {mode_desc}")
                     time.sleep(sleep_secs)
             except KeyboardInterrupt:
                 print("\n[!] Stopped.")
         else:
             result = run_scheduler_tick(args.webhook)
-            print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} (Turbo Sniping: {result['turbo_sniping']})")
+            print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} | Mode: {result['mode']}")
     else:
         parser.print_help()
 
