@@ -168,12 +168,14 @@ def main():
     p_sched.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default: 60)")
     p_sched.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL")
 
-    # Reaction subcommand (Verified Live Forward Reactions)
-    p_rx = subparsers.add_parser("reaction", help="View quantitative live event price reactions & statistics")
+    # Reaction subcommand (Verified Quantitative Reactions)
+    p_rx = subparsers.add_parser("reaction", help="View quantitative event price reactions & statistics")
+    p_rx.add_argument("--year", type=str, default="2024", help="Year to analyze (default: 2024, or live)")
     p_rx.add_argument("--summary", action="store_true", help="Show statistical distribution and whipsaw rate")
 
     # Backtest subcommand (Redirected to Verified Reaction Tracker)
-    p_bt = subparsers.add_parser("backtest", help="View verified live reaction benchmark (replaces old curated backtest)")
+    p_bt = subparsers.add_parser("backtest", help="View verified quantitative reaction benchmark")
+    p_bt.add_argument("--year", type=str, default="2024", help="Year to analyze (default: 2024)")
 
     args = parser.parse_args()
     
@@ -217,9 +219,8 @@ def main():
             print(f"[{result['timestamp']}] Check Complete: {result['events_monitored']} events monitored. Pre-alerts: {result['pre_alerts_sent']}, Flash: {result['flash_alerts_sent']} | Mode: {result['mode']}")
     elif args.command in ("reaction", "backtest"):
         from scripts.reaction_logger import compute_reaction_statistics, print_reaction_report
-        if args.command == "backtest":
-            print("[*] ชุดประเมินผล Macro Backtest เก่าถูกลบออกแล้ว — ระบบเปลี่ยนมาใช้ 'Verified Live Forward Reaction Tracker' เพื่อความโปร่งใสและไม่มี Hindsight Bias")
-        stats = compute_reaction_statistics()
+        target_year = getattr(args, "year", "2024")
+        stats = compute_reaction_statistics(year=target_year)
         print_reaction_report(stats)
     else:
         parser.print_help()

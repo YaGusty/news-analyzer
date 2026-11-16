@@ -19,14 +19,19 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 REACTIONS_FILE = PROJECT_ROOT / "data" / "calendar" / "live_reactions.json"
 
 
-def load_live_reactions() -> list:
-    """Load existing verified live reactions log."""
-    if REACTIONS_FILE.exists():
+def load_live_reactions(year: str = None) -> list:
+    """Load existing verified reactions log for specified year or default live log."""
+    if str(year) == "2024":
+        target = PROJECT_ROOT / "data" / "calendar" / "reactions_2024.json"
+    else:
+        target = REACTIONS_FILE
+
+    if target.exists():
         try:
-            with open(REACTIONS_FILE, "r", encoding="utf-8") as f:
+            with open(target, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"[!] Warning: Unable to parse {REACTIONS_FILE}: {e}")
+            print(f"[!] Warning: Unable to parse {target}: {e}")
             return []
     return []
 
@@ -121,18 +126,20 @@ def record_reaction_event(
     return entry
 
 
-def compute_reaction_statistics() -> dict:
+def compute_reaction_statistics(year: str = None) -> dict:
     """
-    Calculate statistical distributions from verified live reactions:
+    Calculate statistical distributions from verified reactions:
     - Average Shock (NQ/ES points on Hot vs Cool)
     - Whipsaw rate
     - Macro Model Alignment rate
     """
-    records = load_live_reactions()
+    records = load_live_reactions(year)
+    year_label = str(year) if year else "Live Forward Tracker"
     if not records:
         return {
+            "year": year_label,
             "total_events": 0,
-            "message": "ยังไม่มีข้อมูลบันทึกราคาจริง Live Forward Reactions"
+            "message": f"ยังไม่มีข้อมูลบันทึกราคาจริงสำหรับปี/โหมด {year_label}"
         }
 
     total = len(records)
@@ -152,6 +159,7 @@ def compute_reaction_statistics() -> dict:
         return round(sum(pcts) / len(pcts), 2) if pcts else 0.0
 
     stats = {
+        "year": year_label,
         "total_events": total,
         "hot_count": len(hot_events),
         "cool_count": len(cool_events),
@@ -171,20 +179,23 @@ def compute_reaction_statistics() -> dict:
 
 
 def print_reaction_report(stats: dict):
-    """Print readable CLI statistical report for live reactions."""
-    print("\n" + "=" * 80)
-    print("📈 VERIFIED LIVE FORWARD REACTION REPORT (Out-of-Sample)")
-    print("=" * 80)
+    """Print readable CLI statistical report for reactions."""
+    year_label = stats.get("year", "Live Forward Tracker")
+    print("\n" + "=" * 90)
+    print(f"📈 QUANTITATIVE MACRO EVENT REACTION BACKTEST: {year_label}")
+    if year_label == "2024":
+        print("ธีมเศรษฐกิจ: The Great Rate Cut Debate (Sticky Q1 -> Disinflation -> 50bps Jumbo Cut)")
+    print("=" * 90)
     
     if stats.get("total_events", 0) == 0:
-        print("ยังไม่มีประวัติการบันทึก Live Reaction (รัน scheduler หรือ flash เพื่อเริ่มบันทึก)")
-        print("=" * 80)
+        print(f"ยังไม่มีประวัติการบันทึก Reaction สำหรับ {year_label}")
+        print("=" * 90)
         return
 
-    print(f"จำนวนเหตุการณ์ที่บันทึกข้อมูลราคาจริง: {stats['total_events']} ครั้ง")
-    print(f"• อัตราการวิ่งตรงตาม Macro Model: {stats['macro_alignment_rate']}%")
+    print(f"จำนวนเหตุการณ์สำคัญที่ทดสอบ: {stats['total_events']} รอบ")
+    print(f"• อัตราทิศทางวิ่งตรงตาม Macro Model (T+60m): {stats['macro_alignment_rate']}%")
     print(f"• อัตราเกิด Whipsaw (กระชากสลับฝั่ง T+5 vs T+15): {stats['whipsaw_rate']}% ({stats['whipsaw_count']}/{stats['total_events']} ครั้ง)")
-    print("-" * 80)
+    print("-" * 90)
     
     print(f"🔴 กรณีตัวเลข HOT / HAWKISH ({stats['hot_count']} ครั้ง):")
     print(f"   • T+5m Initial Shock: NQ เฉลี่ย {stats['hot_avg_nq_t5_pts']:+} จุด ({stats['hot_avg_nq_t5_pct']:+}%)")
@@ -194,13 +205,17 @@ def print_reaction_report(stats: dict):
     print(f"   • T+5m Initial Shock: NQ เฉลี่ย {stats['cool_avg_nq_t5_pts']:+} จุด ({stats['cool_avg_nq_t5_pct']:+}%)")
     print(f"   • T+60m Settled Move: NQ เฉลี่ย {stats['cool_avg_nq_t60_pts']:+} จุด")
     
-    print("-" * 80)
-    print("📋 บันทึกล่าสุด 3 รายการ:")
-    for r in stats.get("records", [])[-3:]:
-        nq_t5 = r.get("shock_t5", {}).get("nq_pts", "-")
-        nq_t15 = r.get("absorption_t15", {}).get("nq_pts", "-")
-        nq_t60 = r.get("settled_t60", {}).get("nq_pts", "-")
-        whip = "⚡ Whipsaw" if r.get("whipsaw_detected") else "✅ Smooth"
-        print(f"• [{r.get('verdict')}] {r.get('event')} | Actual: {r.get('actual')} vs Exp: {r.get('consensus')}")
-        print(f"  NQ Moves: T+5m: {nq_t5} pts | T+15m: {nq_t15} pts | T+60m: {nq_t60} pts | {whip}")
-    print("=" * 80)
+    print("-" * 90)
+    print("📋 บันทึกรายละเอียดการเคลื่อนไหวราคาจริง (Real Price Reaction Logs):")
+    print(f"{'วันที่ (ไทย)':<17} | {'ข่าว':<26} | {'จริง vs คาด':<13} | {'T+5m':<10} | {'T+15m':<10} | {'T+60m':<10} | {'Whip'}")
+    print("-" * 90)
+    for r in stats.get("records", []):
+        nq_t5 = f"{r.get('shock_t5', {}).get('nq_pts', 0):+} pts" if r.get('shock_t5', {}).get('nq_pts') is not None else "-"
+        nq_t15 = f"{r.get('absorption_t15', {}).get('nq_pts', 0):+} pts" if r.get('absorption_t15', {}).get('nq_pts') is not None else "-"
+        nq_t60 = f"{r.get('settled_t60', {}).get('nq_pts', 0):+} pts" if r.get('settled_t60', {}).get('nq_pts') is not None else "-"
+        whip = "⚡ Whip" if r.get("whipsaw_detected") else "✅ Smooth"
+        bkk_date = r.get("date_bkk", r.get("recorded_at", "-"))[:16]
+        act_exp = f"{r.get('actual')} / {r.get('consensus')}"[:13]
+        evt_title = r.get('event', '-')[:26]
+        print(f"{bkk_date:<17} | {evt_title:<26} | {act_exp:<13} | {nq_t5:<10} | {nq_t15:<10} | {nq_t60:<10} | {whip}")
+    print("=" * 90)
