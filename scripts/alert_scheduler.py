@@ -198,8 +198,8 @@ def get_sniping_interval(events: list, default_interval: int = 60) -> int:
 
 def check_and_send_post_news_flashes(events: list, history: dict, webhook_url: str = None) -> int:
     """
-    Check for events that passed within the last 45 minutes with actual figures.
-    Zero-delay trigger as soon as actual is available!
+    Check for events that passed or are currently in release window ([-3 mins, +45 mins]).
+    During [-3 mins, +5 mins], enters active 5-second polling loop to catch the release in real time!
     """
     now_utc = datetime.now(timezone.utc)
     now_ts = now_utc.timestamp()
@@ -212,43 +212,64 @@ def check_and_send_post_news_flashes(events: list, history: dict, webhook_url: s
             
         event_id = str(event.get("id") or f"{event['title']}_{event['date_utc']}")
         event_ts = event.get("timestamp_utc", 0)
-        seconds_passed = now_ts - event_ts
-        minutes_passed = seconds_passed / 60
+        diff_secs = now_ts - event_ts  # negative: upcoming, positive: passed
+        minutes_passed = diff_secs / 60
         
-        # Zero-delay window: From 0 to 45 minutes after event release
-        if 0 <= minutes_passed <= 45:
-            if event_id not in flash_sent:
-                actual = event.get("actual")
+        if event_id in flash_sent:
+            continue
+            
+        actual = event.get("actual")
+        
+        # 1. Critical Active Sniping: If within [-3 mins, +5 mins] and actual not yet found
+        if -180 <= diff_secs <= 300 and (actual is None or str(actual).strip() == ""):
+            print(f"[Scheduler] 🎯 Active Sniping Window: {event['title']} (T{diff_secs:+.0f}s). Polling every 5s...")
+            start_loop = time.time()
+            max_loop_secs = 360  # max 6 minutes wait
+            while time.time() - start_loop < max_loop_secs:
+                loop_now_ts = datetime.now(timezone.utc).timestamp()
+                loop_diff = loop_now_ts - event_ts
                 
-                # Active Fast Check: If actual is missing, query fast endpoints
-                if actual is None or str(actual).strip() == "":
+                # Check actual once release time is near or reached
+                if loop_diff >= -10:
                     new_acts = fetch_actual_fast(event["title"])
-                    actual = new_acts.get(event["title"].lower())
-                
-                if actual is not None and str(actual).strip() != "":
-                    print(f"[Scheduler] ⚡ [INSTANT FLASH] Triggered for: {event['title']} (Actual: {actual})")
-                    
-                    flash = analyze_flash(
-                        event_name=event["title"],
-                        actual=str(actual),
-                        consensus=str(event.get("forecast", "N/A")),
-                        previous=str(event.get("previous", "N/A"))
-                    )
-                    
-                    payload = format_flash_embed(flash)
-                    ok, msg = send_discord_payload(payload, webhook_url)
-                    print(f"[Scheduler] Flash Alert Dispatch: {msg}")
-                    
-                    if ok:
-                        flash_sent[event_id] = {
-                            "event": event["title"],
-                            "actual": str(actual),
-                            "triggered_at": now_utc.isoformat()
-                        }
-                        history["flash_sent"] = flash_sent
-                        save_alert_history(history)
-                        sent_count += 1
+                    act_candidate = new_acts.get(event["title"].lower())
+                    if act_candidate is not None and str(act_candidate).strip() != "":
+                        actual = act_candidate
+                        print(f"[Scheduler] ⚡ Captured actual for {event['title']}: {actual} (at T{loop_diff:+.0f}s)")
+                        break
                         
+                time.sleep(5)
+                
+        # 2. General Check: If event released within the last 45 minutes and actual is missing
+        if 0 <= minutes_passed <= 45 and (actual is None or str(actual).strip() == ""):
+            new_acts = fetch_actual_fast(event["title"])
+            actual = new_acts.get(event["title"].lower())
+            
+        # 3. If actual is present and within [-3m, 45m], dispatch flash report!
+        if actual is not None and str(actual).strip() != "" and -3 <= minutes_passed <= 45:
+            print(f"[Scheduler] ⚡ [INSTANT FLASH] Triggered for: {event['title']} (Actual: {actual})")
+            
+            flash = analyze_flash(
+                event_name=event["title"],
+                actual=str(actual),
+                consensus=str(event.get("forecast", "N/A")),
+                previous=str(event.get("previous", "N/A"))
+            )
+            
+            payload = format_flash_embed(flash)
+            ok, msg = send_discord_payload(payload, webhook_url)
+            print(f"[Scheduler] Flash Alert Dispatch: {msg}")
+            
+            if ok:
+                flash_sent[event_id] = {
+                    "event": event["title"],
+                    "actual": str(actual),
+                    "triggered_at": datetime.now(timezone.utc).isoformat()
+                }
+                history["flash_sent"] = flash_sent
+                save_alert_history(history)
+                sent_count += 1
+                
     return sent_count
 
 

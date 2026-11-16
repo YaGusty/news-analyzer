@@ -9,6 +9,7 @@ on:
 jobs:
   check-news:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,8 +24,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run News Scheduler Tick
+      - name: Run News Scheduler & Active Sniping
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          python scripts/main.py scheduler --check-once
+          python -u scripts/main.py scheduler --check-once
