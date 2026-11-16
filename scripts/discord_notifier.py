@@ -104,6 +104,15 @@ def format_forecast_embed(analysis: dict) -> dict:
             "inline": False
         })
 
+    # Granular Sub-Components Watchlist
+    if analysis.get("subcomponents"):
+        sub_text = "\n".join([f"• {s}" for s in analysis["subcomponents"]])
+        embed["fields"].append({
+            "name": "🔍 จุดชี้ขาดไส้ใน (Key Sub-Components to Watch)",
+            "value": sub_text[:1024],
+            "inline": False
+        })
+
     # Domino Critical Thinking (Macro Causal Chain)
     if analysis.get("domino_thinking"):
         embed["fields"].append({
@@ -201,6 +210,12 @@ def format_flash_embed(flash_data: dict) -> dict:
             "value": flash_data["market_reaction"][:1024],
             "inline": False
         })
+        
+    embed["fields"].append({
+        "name": "⚡ Quantitative Reaction & Whipsaw Advisory",
+        "value": "• **T+5m Initial Shock:** ระวัง Liquidity Spike สะบัดกินสภาพคล่อง\n• **T+15m Absorption:** สังเกตว่าแรงซื้อ/ขายถูกดูดซับ (Absorption) หรือเกิด Reversal สวนทาง\n• **T+60m Settled Move:** ตลาดจะเคลื่อนไหวตามตรรกะตัวเลขไส้ในที่แท้จริง",
+        "inline": False
+    })
         
     if flash_data.get("fed_outlook"):
         embed["fields"].append({

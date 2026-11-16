@@ -74,14 +74,19 @@ def calculate_metrics(dataset: list, year_label: str, category_filter: str = Non
 
 
 def run_backtest_by_year(year: str = "2025", category_filter: str = None) -> dict:
-    """Calculate accuracy metrics for specified year or all years."""
-    available_years = ["2019", "2020", "2021", "2022", "2025"]
-    if year.lower() == "all":
+    """Calculate accuracy metrics for specified year, all years, or verified live forward reactions."""
+    available_years = ["2019", "2020", "2021", "2022", "2025", "live"]
+    if str(year).lower() == "live":
+        from scripts.reaction_logger import compute_reaction_statistics
+        return {"mode": "live", "stats": compute_reaction_statistics()}
+        
+    if str(year).lower() == "all":
         results = {}
-        for y in available_years:
+        for y in ["2019", "2020", "2021", "2022", "2025"]:
             d = load_dataset(y)
             results[y] = calculate_metrics(d, y, category_filter)
-        return {"mode": "all", "years": results}
+        from scripts.reaction_logger import compute_reaction_statistics
+        return {"mode": "all", "years": results, "live_stats": compute_reaction_statistics()}
     else:
         dataset = load_dataset(str(year))
         if not dataset:
@@ -119,6 +124,10 @@ def print_comparative_table(all_results: dict):
     print("4. ปี 2022: 'The Great Tightening Shock' (เงินเฟ้อทะลุ 9.1% + ขึ้นดอกเบี้ย 75 bps ติด 4 ครั้ง หุ้นพังทลาย)")
     print("5. ปี 2025: 'Pure Macro Fundamental Equilibrium' (ตลาดกลับสู่ระเบียบวินัยตามกลไกดอกเบี้ยแท้จริง)")
     print("=" * 110)
+    
+    if "live_stats" in all_results and all_results["live_stats"].get("total_events", 0) > 0:
+        from scripts.reaction_logger import print_reaction_report
+        print_reaction_report(all_results["live_stats"])
 
 
 def print_single_year_report(stats: dict, detailed: bool = False):
@@ -195,6 +204,9 @@ if __name__ == "__main__":
     
     if res.get("mode") == "all":
         print_comparative_table(res)
+    elif res.get("mode") == "live":
+        from scripts.reaction_logger import print_reaction_report
+        print_reaction_report(res["stats"])
     elif "stats" in res:
         print_single_year_report(res["stats"], detailed=detailed_flag)
     else:

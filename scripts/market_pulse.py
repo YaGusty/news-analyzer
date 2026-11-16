@@ -110,23 +110,38 @@ def get_market_pulse() -> dict:
         elif vix["price"] < 15:
             sentiment_notes.append("😌 VIX ต่ำกว่า 15 (ตลาดนิ่ง ไร้ความตระหนก)")
             
-    # 3. Equities Assessment
+    # 3. Equities Assessment & Pre-News Drift Skew
     nq = pulse.get("NQ", {})
     es = pulse.get("ES", {})
-    if nq.get("change_pct") is not None and es.get("change_pct") is not None:
-        if nq["change_pct"] < -1.0:
-            sentiment_notes.append("📉 NQ ถูกเทขายนำตลาดก่อนข่าว")
-        elif nq["change_pct"] > 1.0:
-            sentiment_notes.append("📈 NQ ปรับตัวขึ้นแข็งแกร่งนำตลาด")
+    positioning_risk = "⚖️ Neutral Positioning (ตลาดทรงตัวสมดุลก่อนข่าวออก ไม่เอนเอียงฝั่งใดชัดเจน)"
+    macro_regime = "Goldilocks / Macro Normalcy"
+    
+    if nq.get("change_pct") is not None:
+        if nq["change_pct"] >= 0.8:
+            sentiment_notes.append("📈 NQ ปรับตัวขึ้นแรงนำตลาดล่วงหน้า")
+            positioning_risk = "⚠️ Asymmetric Downside Risk (Priced for Perfection): ตลาดแรลลี่ดักหน้าไปแล้ว หากตัวเลขออกมาเพียง In-line หรือ Hot เล็กน้อย อาจเผชิญแรง Sell-on-fact ทันที"
+        elif nq["change_pct"] <= -0.8:
+            sentiment_notes.append("📉 NQ ถูกเทขายซึมซับความกลัวนำตลาด")
+            positioning_risk = "🛡️ Asymmetric Upside Risk (Priced for Fear): ตลาดซึมซับความกลัวไปล่วงหน้า หากตัวเลขไม่ออกมาแย่กว่าคาด มีโอกาสเกิด Short Squeeze / Relief Rally รวดเร็ว"
+
+    # Macro Regime Context Identification
+    if us10y.get("price") is not None and us10y["price"] > 4.5:
+        macro_regime = "Yield Dominance (ดอกเบี้ยและบอนด์ยีลด์ระดับสูงเป็นตัวบงการ Valuation ของหุ้น Growth)"
+    elif vix.get("price") is not None and vix["price"] > 24:
+        macro_regime = "High Volatility / Growth Recession Fear (ตลาดกังวลความเสี่ยงเศรษฐกิจถดถอยและสภาพคล่อง)"
+    else:
+        macro_regime = "Equilibrium / Disinflation Watch (ตลาดตอบสนองตามตรรกะดอกเบี้ยแท้จริง)"
 
     pulse["sentiment_summary"] = " | ".join(sentiment_notes) if sentiment_notes else "สภาวะตลาดอยู่ในเกณฑ์ปกติก่อนการประกาศตัวเลข"
+    pulse["positioning_risk"] = positioning_risk
+    pulse["macro_regime"] = macro_regime
     return pulse
 
 
 def format_pulse_text(pulse: dict) -> str:
     """Format market pulse into a clean text block."""
     lines = []
-    lines.append("🌐 [PRE-NEWS MARKET PULSE]")
+    lines.append("🌐 [PRE-NEWS MARKET PULSE & POSITIONING]")
     
     dxy = pulse.get("DXY", {})
     us10y = pulse.get("US10Y", {})
@@ -145,6 +160,8 @@ def format_pulse_text(pulse: dict) -> str:
     lines.append(f"• DXY: {fmt(dxy)} | US10Y: {fmt(us10y, '%')} | VIX: {fmt(vix)}")
     lines.append(f"• NQ (Tech): {fmt(nq)} | ES (S&P): {fmt(es)} | YM (Dow): {fmt(ym)}")
     lines.append(f"• สรุปบรรยากาศ: {pulse.get('sentiment_summary')}")
+    lines.append(f"• Pre-News Drift: {pulse.get('positioning_risk')}")
+    lines.append(f"• Macro Regime: {pulse.get('macro_regime')}")
     return "\n".join(lines)
 
 
@@ -166,7 +183,8 @@ def format_pulse_for_discord(pulse: dict) -> str:
     lines = [
         f"💵 **DXY:** {fmt(dxy)} • 🏛️ **US10Y:** {fmt(us10y, '%')} • ⚡ **VIX:** {fmt(vix)}",
         f"💻 **NQ:** {fmt(nq)} • 📊 **ES:** {fmt(es)} • 🏭 **YM:** {fmt(ym)}",
-        f"📌 *{pulse.get('sentiment_summary')}*"
+        f"📌 **บรรยากาศ:** *{pulse.get('sentiment_summary')}*",
+        f"⚖️ **Pre-News Drift:** {pulse.get('positioning_risk')}"
     ]
     return "\n".join(lines)
 

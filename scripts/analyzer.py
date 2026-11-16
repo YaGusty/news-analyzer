@@ -44,6 +44,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "Consumer Price Index (CPI)",
         "category": "Inflation",
         "description": "ดัชนีราคาผู้บริโภค ชี้วัดอัตราเงินเฟ้อหลักของสหรัฐฯ มีผลกระทบต่อการตัดสินใจเรื่องดอกเบี้ยของ Fed สูงสุด",
+        "subcomponents": [
+            "1. SuperCore Inflation (Core Services ex-Housing): มาตรวัดที่ Powell จับตาใกล้ชิดที่สุด หากส่วนนี้ยังเร่งตัว ดอกเบี้ยจะปรับลงยาก",
+            "2. Shelter & OER (Owners' Equivalent Rent): สัดส่วน 36% ของ Headline CPI มักช้ากว่าตลาดจริง (Lagging) ต้องดูว่าเริ่มชะลอตัวจริงตามสัญญาเช่าใหม่หรือไม่",
+            "3. Used Cars & Core Goods: สินค้าคงทนที่เป็นตัวชี้วัดการคืนสู่ภาวะปกติของซัพพลายเชนและผลกระทบของกำแพงภาษี"
+        ],
         "nas100": "Tech Index มีความอ่อนไหวสูงสุดต่อเงินเฟ้อและอัตราผลตอบแทนพันธบัตร (US10Y) หากเงินเฟ้อร้อนแรง Yield พุ่ง จะเกิด Valuation Multiple Contraction กดดันหุ้น Tech ขนาดใหญ่",
         "sp500": "ดัชนีตลาดภาพรวม รับแรงกดดันจากต้นทุนทางการเงินที่ตึงตัวขึ้นและ P/E ที่อาจถูกปรับลดลง แต่มีกลุ่มพลังงานและการเงินช่วยพยุงบางส่วน",
         "dow": "ดัชนีหุ้นคุณค่าและอุตสาหกรรม (Value & Cyclicals) ได้รับผลกระทบน้อยกว่า Tech เล็กน้อย แต่หากเงินเฟ้อทำให้กำลังซื้อผู้บริโภคลดลง หุ้นค้าปลีกและอุตสาหกรรมจะเผชิญแรงกดดัน",
@@ -56,6 +61,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "Core PCE Price Index",
         "category": "Inflation",
         "description": "มาตรวัดเงินเฟ้อที่ธนาคารกลางสหรัฐฯ (Fed) ให้ความสำคัญและใช้อ้างอิงเป็นเป้าหมาย 2% อย่างเป็นทางการ",
+        "subcomponents": [
+            "1. Core Services ex-Housing MoM: เป้าหมายเงินเฟ้อทางการของ Fed ที่ต้องกดให้เข้าใกล้ 0.17% MoM เพื่อบรรลุ 2% ต่อปี",
+            "2. Personal Spending (MoM): กำลังการใช้จ่ายจริงของผู้บริโภค บ่งบอกว่าความต้องการซื้อยังร้อนแรงหรือเริ่มชะลอ",
+            "3. Personal Income & Saving Rate: อัตราการออมและรายได้ที่สะท้อนสุขภาพกระเป๋าเงินครัวเรือนสหรัฐฯ"
+        ],
         "nas100": "มีความอ่อนไหวสูงมากต่อ Core PCE MoM หากออกมาสูงกว่า 0.3% MoM จะบีบให้ Fed คงดอกเบี้ยสูงนานขึ้น (Higher-for-Longer) ฉุดหุ้นกลุ่ม Semiconductor และ Cloud",
         "sp500": "ส่งผลต่อการคาดการณ์ Discount Rate ของกระแสเงินสดในอนาคต หาก PCE สอดคล้องกับเป้าหมาย Fed ตลาดหุ้นภาพรวมจะตอบรับเชิงบวก",
         "dow": "สะท้อนแรงกดดันด้านค่าครองชีพและราคาสินค้าอุปโภคบริโภค มีผลต่อหุ้นกลุ่ม Defensive และ Consumer Staples",
@@ -68,6 +78,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "Non-Farm Payrolls (NFP) & Unemployment Rate",
         "category": "Employment",
         "description": "ตัวเลขการจ้างงานนอกภาคเกษตรและอัตราการว่างงาน ชี้วัดความแข็งแกร่งของตลาดแรงงานสหรัฐฯ",
+        "subcomponents": [
+            "1. Average Hourly Earnings (MoM/YoY): ปัจจัยชี้ขาดเงินเฟ้อค่าจ้าง หาก MoM > 0.3% ตลาดจะกังวลเรื่องการคงดอกเบี้ยนาน",
+            "2. Unemployment Rate & Sahm Rule: หากอัตราว่างงานดีดแตะเงื่อนไข Sahm Rule ตลาดจะเข้าสู่โหมดกลัว Recession ทันที",
+            "3. 2-Month Net Revisions: การปรับทบทวนตัวเลขย้อนหลัง 2 เดือนก่อนหน้า มักเป็นจุดที่ทำให้ตลาดกลับตัว (Reversal)"
+        ],
         "nas100": "ตลาด Tech ตอบสนองต่อ NFP สองมิติ: ถ้าการจ้างงานแข็งแกร่งเกินไป ตลาดจะกลัวเงินเฟ้อค่าจ้าง (Average Hourly Earnings) และดอกเบี้ย แต่ถ้าการจ้างงานพังเกินไป ตลาดจะเริ่มกังวลภาวะเศรษฐกิจถดถอย (Hard Landing)",
         "sp500": "S&P 500 ชอบตัวเลขแบบ 'Goldilocks' (จ้างงานเติบโตปานกลาง 140k-180k อัตราว่างงานคงที่ ค่าจ้างไม่เร่งตัว) ซึ่งสะท้อนว่าเศรษฐกิจยังเติบโตโดยไม่สร้างเงินเฟ้อ",
         "dow": "Dow Jones ตอบรับเชิงบวกต่อการจ้างงานที่มั่นคง เพราะสะท้อนสุขภาพของภาคธุรกิจ อุตสาหกรรม และการจ้างงานจริง",
@@ -80,6 +95,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "FOMC Rate Decision & Press Conference",
         "category": "Central Bank",
         "description": "การตัดสินใจอัตราดอกเบี้ยนโยบายของ Fed ถ้อยแถลง และการแถลงข่าวของประธาน Jerome Powell",
+        "subcomponents": [
+            "1. Dot Plot & SEP (Summary of Economic Projections): การกระจายตัวของคาดการณ์ดอกเบี้ยและเป้าเงินเฟ้อของกรรมการเฟด",
+            "2. Balance Sheet / QT Runoff Rate: อัตราการลดขนาดงบดุลของเฟดที่ส่งผลต่อสภาพคล่องระบบธนาคาร",
+            "3. Press Conference Q&A Tone: น้ำเสียงและความยืดหยุ่นของ Powell ต่อการพิจารณาปรับลดหรือคงดอกเบี้ย"
+        ],
         "nas100": "อีเวนต์ที่มีน้ำหนักสูงสุดแห่งไตรมาส ทัศนะของ Powell ต่ออัตราดอกเบี้ยและ Dot Plot จะกำหนดทิศทางของดัชนี Tech ทั้งเดือน",
         "sp500": "สะท้อนต้นทุนทางการเงินรวมของบริษัทจดทะเบียนในดัชนี และสภาพคล่องส่วนเกินในระบบการเงิน",
         "dow": "หุ้นสถาบันการเงิน (JPM, GS) และกลุ่มอุตสาหกรรมใน Dow ไวต่อการส่งสัญญาณเรื่อง Balance Sheet (QT) และ Neutral Rate",
@@ -92,6 +112,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "US Retail Sales (MoM)",
         "category": "Consumption",
         "description": "ยอดค้าปลีก ชี้วัดการใช้จ่ายของผู้บริโภค ซึ่งคิดเป็นเกือบ 70% ของ GDP สหรัฐฯ",
+        "subcomponents": [
+            "1. Control Group (Core-Core Retail): ไม่รวมยานยนต์ น้ำมัน อาหาร วัสดุก่อสร้าง นำไปคำนวณ GDP Personal Consumption โดยตรง",
+            "2. Retail Sales ex-Autos & Gas: กำลังซื้อสินค้าบริโภคที่แท้จริง ตัดความผันผวนของราคาน้ำมันโลกออก",
+            "3. Food Services & Drinking: ตัวชี้วัดการบริโภคภาคบริการนอกบ้าน (Discretionary Services)"
+        ],
         "nas100": "สะท้อนกำลังซื้อด้านฮาร์ดแวร์ สินค้าอิเล็กทรอนิกส์ และ E-commerce (เช่น AMZN, AAPL)",
         "sp500": "มีผลโดยตรงต่อกลุ่ม Consumer Discretionary และ Consumer Staples สะท้อนว่าผู้บริโภคยังแบกรับเศรษฐกิจได้หรือไม่",
         "dow": "Dow Jones มีความไวสูงมากต่อ Retail Sales ผ่านหุ้นค้าปลีกยักษ์ใหญ่อย่าง Home Depot (HD), Walmart (WMT), Nike (NKE)",
@@ -104,6 +129,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "Advance GDP (QoQ Annualized)",
         "category": "Growth",
         "description": "อัตราการเติบโตทางเศรษฐกิจของสหรัฐฯ แบบรายไตรมาส",
+        "subcomponents": [
+            "1. Real PCE (Personal Consumption Expenditures): สัดส่วน 70% ของเศรษฐกิจ ต้องดูว่าเติบโตอย่างยั่งยืนหรือไม่",
+            "2. Gross Private Domestic Investment: การลงทุนในเครื่องจักร เทคโนโลยี AI และสต็อกสินค้าของภาคธุรกิจ",
+            "3. Net Exports & Government Spending: องค์ประกอบที่มีความผันผวนสูงและอาจบิดเบือนภาพรวมแท้จริง"
+        ],
         "nas100": "ชอบการเติบโตที่สมดุล หาก GDP สูงเกิน 3% อาจจุดชนวนความกังวลเรื่องเงินเฟ้อ แต่ถ้าชะลอตัวแบบมีเสถียรภาพจะส่งผลดีต่อหุ้น Tech",
         "sp500": "ตัวขับเคลื่อนหลักของการเติบโตของรายได้ (Top-line Revenue Growth) ของบริษัทขนาดใหญ่",
         "dow": "สะท้อนความต้องการเครื่องจักร การขนส่ง และสินค้าอุตสาหกรรมหนักโดยตรง",
@@ -116,6 +146,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "ISM Manufacturing / Services PMI",
         "category": "Business Activity",
         "description": "ดัชนีผู้จัดการฝ่ายจัดซื้อภาคการผลิตและบริการ ระดับ 50 คือเส้นแบ่งระหว่างการขยายตัวและการหดตัว",
+        "subcomponents": [
+            "1. Prices Paid Index: ดัชนีต้นทุนราคาที่ผู้ประกอบการจ่าย เป็นตัวทำนายเงินเฟ้อล่วงหน้า 1-2 เดือน",
+            "2. New Orders Index: ดัชนีคำสั่งซื้อใหม่ ชี้วัดโมเมนตัมเศรษฐกิจในไตรมาสถัดไป",
+            "3. Employment Sub-index: ดัชนีการจ้างงานภาคการผลิต/บริการ ชี้วัดภาวะตึงตัวของแรงงาน"
+        ],
         "nas100": "ภาคบริการ (Services PMI) มีความสำคัญสูงเพราะคิดเป็นสัดส่วนใหญ่ของเศรษฐกิจ และไส้ใน 'Prices Paid' เป็นมาตรวัดเงินเฟ้อล่วงหน้า",
         "sp500": "สะท้อนความเชื่อมั่นและการส่งคำสั่งซื้อใหม่ (New Orders) ของผู้บริหารบริษัทชั้นนำ",
         "dow": "ภาคการผลิต (Manufacturing PMI) มีผลกระทบต่อหุ้น Dow Jones โดยตรงอย่างมีนัยสำคัญ",
@@ -128,6 +163,11 @@ EVENT_KNOWLEDGE = {
         "full_name": "Initial Jobless Claims",
         "category": "Labor Flow",
         "description": "จำนวนผู้ขอรับสวัสดิการว่างงานรายสัปดาห์ เป็น High-Frequency Data ที่รายงานทุกวันพฤหัสบดี",
+        "subcomponents": [
+            "1. Continuing Claims: จำนวนผู้ขอรับสวัสดิการต่อเนื่อง ชี้วัดความยากง่ายในการหางานใหม่ของผู้ว่างงาน",
+            "2. 4-Week Moving Average: ค่าเฉลี่ย 4 สัปดาห์ เพื่อกรองสัญญาณรบกวน (Noise) รายสัปดาห์",
+            "3. State-level Spikes: ดูว่ามีรัฐใหญ่แห่งใดที่เกิดการปลดพนักงานผิดปกติหรือไม่"
+        ],
         "nas100": "ช่วยบอกทิศทางตลาดแรงงานแบบ Real-time ก่อนตัวเลข NFP รายเดือน",
         "sp500": "ใช้ประเมินเสถียรภาพรายได้ของผู้บริโภค",
         "dow": "ตอบสนองต่อแนวโน้มการปลดพนักงานในภาคอุตสาหกรรม",
@@ -328,6 +368,9 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
     
     # Synthesize Causal Chain Reaction (Domino Critical Thinking)
     domino_thinking = synthesize_domino_thinking(event_name)
+    subcomponents = kb.get("subcomponents", [])
+    positioning_risk = pulse_data.get("positioning_risk", "⚖️ Neutral")
+    macro_regime = pulse_data.get("macro_regime", "Macro Equilibrium")
     
     analysis = {
         "event": kb["full_name"],
@@ -339,6 +382,9 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "previous": previous_val,
         "tldr": tldr,
         "domino_thinking": domino_thinking,
+        "subcomponents": subcomponents,
+        "positioning_risk": positioning_risk,
+        "macro_regime": macro_regime,
         "description": kb["description"],
         "nas100_impact": kb["nas100"],
         "sp500_impact": kb["sp500"],
@@ -352,6 +398,8 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
     
+    subcomponents_md = "\n".join([f"- {s}" for s in subcomponents]) if subcomponents else "- ติดตามตัวเลขรวมและการแจกแจงรายละเอียดตามรายงานทางการ"
+
     md_content = f"""# 🔴 Pre-News Forecast: {kb['full_name']} {f'({period})' if period else ''}
 
 - **เวลาประกาศ (BKK):** {time_bkk} (New York: {time_ny})
@@ -359,6 +407,13 @@ def analyze_forecast(event_name: str, consensus: str = None, previous: str = Non
 
 ## 📌 TL;DR Focus
 > {tldr}
+
+## 🔍 จุดชี้ขาดไส้ใน (Granular Sub-Components Watch)
+{subcomponents_md}
+
+## ⚖️ Pre-News Positioning & Macro Regime
+- **Current Regime:** `{macro_regime}`
+- **Positioning Risk:** {positioning_risk}
 
 ## 🧠 Domino Critical Thinking (การเชื่อมโยงลูกโซ่เศรษฐกิจ)
 {domino_thinking}
