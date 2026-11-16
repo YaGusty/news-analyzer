@@ -170,12 +170,12 @@ def main():
 
     # Reaction subcommand (Verified Quantitative Reactions)
     p_rx = subparsers.add_parser("reaction", help="View quantitative event price reactions & statistics")
-    p_rx.add_argument("--year", type=str, default="2024", help="Year to analyze (default: 2024, or live)")
+    p_rx.add_argument("--year", type=str, default="all", choices=["2020", "2021", "2022", "2023", "2024", "2025", "all", "live"], help="Year to analyze (2020-2025, all, or live)")
     p_rx.add_argument("--summary", action="store_true", help="Show statistical distribution and whipsaw rate")
 
     # Backtest subcommand (Redirected to Verified Reaction Tracker)
     p_bt = subparsers.add_parser("backtest", help="View verified quantitative reaction benchmark")
-    p_bt.add_argument("--year", type=str, default="2024", help="Year to analyze (default: 2024)")
+    p_bt.add_argument("--year", type=str, default="all", choices=["2020", "2021", "2022", "2023", "2024", "2025", "all", "live"], help="Year to analyze (2020-2025, all, or live)")
 
     args = parser.parse_args()
     

@@ -21,8 +21,9 @@ REACTIONS_FILE = PROJECT_ROOT / "data" / "calendar" / "live_reactions.json"
 
 def load_live_reactions(year: str = None) -> list:
     """Load existing verified reactions log for specified year or default live log."""
-    if str(year) == "2024":
-        target = PROJECT_ROOT / "data" / "calendar" / "reactions_2024.json"
+    year_str = str(year).strip() if year else None
+    if year_str in ("2020", "2021", "2022", "2023", "2024", "2025"):
+        target = PROJECT_ROOT / "data" / "calendar" / f"reactions_{year_str}.json"
     else:
         target = REACTIONS_FILE
 
@@ -126,6 +127,16 @@ def record_reaction_event(
     return entry
 
 
+YEAR_THEMES = {
+    "2020": "COVID-19 Black Swan Shock, Emergency Zero Rates & Infinite QE",
+    "2021": "Post-Vaccine Reopening Euphoria & The 'Transitory' Inflation Debate",
+    "2022": "40-Year Inflation Peak (9.1%), Aggressive 75 bps Mega-Hikes & Tech Bear Market",
+    "2023": "Regional Bank Crisis (SVB) & The AI Megatrend Kickoff (Nvidia Mania)",
+    "2024": "The Great Rate Cut Debate (Sticky Q1 -> Disinflation -> 50bps Jumbo Cut)",
+    "2025": "Pure Macro Fundamental Equilibrium & Rate Cutting Cycle"
+}
+
+
 def compute_reaction_statistics(year: str = None) -> dict:
     """
     Calculate statistical distributions from verified reactions:
@@ -133,8 +144,16 @@ def compute_reaction_statistics(year: str = None) -> dict:
     - Whipsaw rate
     - Macro Model Alignment rate
     """
-    records = load_live_reactions(year)
-    year_label = str(year) if year else "Live Forward Tracker"
+    year_str = str(year).strip().lower() if year else "2024"
+    if year_str == "all":
+        years = ["2020", "2021", "2022", "2023", "2024", "2025"]
+        results = {}
+        for y in years:
+            results[y] = compute_reaction_statistics(year=y)
+        return {"mode": "all", "years": results}
+
+    records = load_live_reactions(year_str)
+    year_label = str(year).strip() if year else "Live Forward Tracker"
     if not records:
         return {
             "year": year_label,
@@ -178,13 +197,40 @@ def compute_reaction_statistics(year: str = None) -> dict:
     return stats
 
 
+def print_multi_year_reaction_comparison(all_results: dict):
+    """Render comparison scorecard across 2020, 2021, 2022, 2023, 2024, and 2025."""
+    years = ["2020", "2021", "2022", "2023", "2024", "2025"]
+    print("\n" + "=" * 125)
+    print("🌐 FULL QUANTITATIVE MACRO REGIME REACTION COMPARISON (2020 - 2025)")
+    print("=" * 125)
+    print(f"{'มิติการประเมิน':<30} | {'2020 (COVID)':<14} | {'2021 (Transitory)':<17} | {'2022 (75bps Hikes)':<18} | {'2023 (AI Boom)':<15} | {'2024 (Rate Cuts)':<16} | {'2025 (Soft Land)'}")
+    print("-" * 125)
+    
+    y = all_results["years"]
+    
+    print(f"{'จำนวนเหตุการณ์ที่ทดสอบ':<30} | {y['2020']['total_events']} รอบ{'':<8} | {y['2021']['total_events']} รอบ{'':<11} | {y['2022']['total_events']} รอบ{'':<12} | {y['2023']['total_events']} รอบ{'':<9} | {y['2024']['total_events']} รอบ{'':<9} | {y['2025']['total_events']} รอบ")
+    print(f"{'1️⃣ ทิศทางตรงโมเดล (T+60m)':<30} | {y['2020']['macro_alignment_rate']}% ({y['2020']['macro_alignment_rate']*y['2020']['total_events']/100:.0f}/{y['2020']['total_events']}){'':<2} | {y['2021']['macro_alignment_rate']}% ({y['2021']['macro_alignment_rate']*y['2021']['total_events']/100:.0f}/{y['2021']['total_events']}){'':<5} | {y['2022']['macro_alignment_rate']}% ({y['2022']['macro_alignment_rate']*y['2022']['total_events']/100:.0f}/{y['2022']['total_events']}){'':<6} | {y['2023']['macro_alignment_rate']}% ({y['2023']['macro_alignment_rate']*y['2023']['total_events']/100:.0f}/{y['2023']['total_events']}){'':<3} | {y['2024']['macro_alignment_rate']}% ({y['2024']['macro_alignment_rate']*y['2024']['total_events']/100:.0f}/{y['2024']['total_events']}){'':<4} | {y['2025']['macro_alignment_rate']}% ({y['2025']['macro_alignment_rate']*y['2025']['total_events']/100:.0f}/{y['2025']['total_events']})")
+    print(f"{'2️⃣ อัตราเกิด Whipsaw (T+5 vs T+15)':<30} | {y['2020']['whipsaw_rate']}% ({y['2020']['whipsaw_count']}/{y['2020']['total_events']}){'':<4} | {y['2021']['whipsaw_rate']}% ({y['2021']['whipsaw_count']}/{y['2021']['total_events']}){'':<7} | {y['2022']['whipsaw_rate']}% ({y['2022']['whipsaw_count']}/{y['2022']['total_events']}){'':<8} | {y['2023']['whipsaw_rate']}% ({y['2023']['whipsaw_count']}/{y['2023']['total_events']}){'':<5} | {y['2024']['whipsaw_rate']}% ({y['2024']['whipsaw_count']}/{y['2024']['total_events']}){'':<5} | {y['2025']['whipsaw_rate']}% ({y['2025']['whipsaw_count']}/{y['2025']['total_events']})")
+    print(f"{'3️⃣ แรงกระชาก Hot (NQ T+5m)':<30} | {y['2020']['hot_avg_nq_t5_pts']:+}p ({y['2020']['hot_avg_nq_t5_pct']:+}%) | {y['2021']['hot_avg_nq_t5_pts']:+}p ({y['2021']['hot_avg_nq_t5_pct']:+}%) | {y['2022']['hot_avg_nq_t5_pts']:+}p ({y['2022']['hot_avg_nq_t5_pct']:+}%) | {y['2023']['hot_avg_nq_t5_pts']:+}p ({y['2023']['hot_avg_nq_t5_pct']:+}%) | {y['2024']['hot_avg_nq_t5_pts']:+}p ({y['2024']['hot_avg_nq_t5_pct']:+}%) | {y['2025']['hot_avg_nq_t5_pts']:+}p ({y['2025']['hot_avg_nq_t5_pct']:+}%)")
+    print(f"{'4️⃣ แรงกระชาก Cool (NQ T+5m)':<30} | {y['2020']['cool_avg_nq_t5_pts']:+}p ({y['2020']['cool_avg_nq_t5_pct']:+}%) | {y['2021']['cool_avg_nq_t5_pts']:+}p ({y['2021']['cool_avg_nq_t5_pct']:+}%) | {y['2022']['cool_avg_nq_t5_pts']:+}p ({y['2022']['cool_avg_nq_t5_pct']:+}%) | {y['2023']['cool_avg_nq_t5_pts']:+}p ({y['2023']['cool_avg_nq_t5_pct']:+}%) | {y['2024']['cool_avg_nq_t5_pts']:+}p ({y['2024']['cool_avg_nq_t5_pct']:+}%) | {y['2025']['cool_avg_nq_t5_pts']:+}p ({y['2025']['cool_avg_nq_t5_pct']:+}%)")
+    print("=" * 125)
+    print("\n💡 วิวัฒนาการ 6 ยุคสมัยของสภาวะตลาด (Macro Paradigm Evolution):")
+    for y_idx in years:
+        print(f"• ปี {y_idx}: {YEAR_THEMES.get(y_idx)}")
+    print("=" * 125)
+
+
 def print_reaction_report(stats: dict):
     """Print readable CLI statistical report for reactions."""
+    if stats.get("mode") == "all":
+        print_multi_year_reaction_comparison(stats)
+        return
+
     year_label = stats.get("year", "Live Forward Tracker")
     print("\n" + "=" * 90)
     print(f"📈 QUANTITATIVE MACRO EVENT REACTION BACKTEST: {year_label}")
-    if year_label == "2024":
-        print("ธีมเศรษฐกิจ: The Great Rate Cut Debate (Sticky Q1 -> Disinflation -> 50bps Jumbo Cut)")
+    if year_label in YEAR_THEMES:
+        print(f"ธีมเศรษฐกิจ: {YEAR_THEMES[year_label]}")
     print("=" * 90)
     
     if stats.get("total_events", 0) == 0:
