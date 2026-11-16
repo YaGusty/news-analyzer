@@ -163,8 +163,8 @@ def main():
     p_sched.add_argument("--webhook", type=str, default=None, help="Explicit webhook URL")
 
     # Backtest subcommand
-    p_bt = subparsers.add_parser("backtest", help="Run historical macro backtest (2019, 2020, 2025, or all)")
-    p_bt.add_argument("--year", type=str, default="2025", choices=["2019", "2020", "2025", "all"], help="Year to backtest (2019, 2020, 2025, or all)")
+    p_bt = subparsers.add_parser("backtest", help="Run historical macro backtest (2019, 2020, 2021, 2022, 2025, or all)")
+    p_bt.add_argument("--year", type=str, default="2025", choices=["2019", "2020", "2021", "2022", "2025", "all"], help="Year to backtest (2019, 2020, 2021, 2022, 2025, or all)")
     p_bt.add_argument("--category", type=str, default=None, help="Filter by category (CPI, NFP, FOMC, Retail, PPI)")
     p_bt.add_argument("--detailed", action="store_true", help="Print full event-by-event log")
 

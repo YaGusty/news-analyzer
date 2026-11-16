@@ -75,16 +75,17 @@ def calculate_metrics(dataset: list, year_label: str, category_filter: str = Non
 
 def run_backtest_by_year(year: str = "2025", category_filter: str = None) -> dict:
     """Calculate accuracy metrics for specified year or all years."""
+    available_years = ["2019", "2020", "2021", "2022", "2025"]
     if year.lower() == "all":
         results = {}
-        for y in ["2019", "2020", "2025"]:
+        for y in available_years:
             d = load_dataset(y)
             results[y] = calculate_metrics(d, y, category_filter)
         return {"mode": "all", "years": results}
     else:
         dataset = load_dataset(str(year))
         if not dataset:
-            return {"error": f"Year {year} not found or has no data. Available: 2019, 2020, 2025"}
+            return {"error": f"Year {year} not found or has no data. Available: {', '.join(available_years)}"}
         return {"mode": "single", "stats": calculate_metrics(dataset, str(year), category_filter)}
 
 
@@ -95,32 +96,29 @@ def run_backtest(category_filter: str = None) -> dict:
 
 
 def print_comparative_table(all_results: dict):
-    """Render comparison scorecard across 2019, 2020, and 2025."""
-    print("\n" + "=" * 92)
-    print("🌐 MULTI-YEAR MACRO REGIME COMPARISON (2019 vs 2020 vs 2025)")
-    print("=" * 92)
-    print(f"{'มิติการประเมิน':<32} | {'ปี 2019 (Trade War)':<18} | {'ปี 2020 (COVID QE)':<18} | {'ปี 2025 (Inflation)':<18}")
-    print("-" * 92)
+    """Render comparison scorecard across 2019, 2020, 2021, 2022, and 2025."""
+    years = ["2019", "2020", "2021", "2022", "2025"]
+    print("\n" + "=" * 110)
+    print("🌐 FULL MACRO CYCLE REGIME COMPARISON (2019 - 2025)")
+    print("=" * 110)
+    print(f"{'มิติการประเมิน':<28} | {'2019 (Trade War)':<14} | {'2020 (COVID QE)':<14} | {'2021 (Transitory)':<15} | {'2022 (75bps Hikes)':<15} | {'2025 (Inflation)':<14}")
+    print("-" * 110)
     
-    y19 = all_results["years"]["2019"]
-    y20 = all_results["years"]["2020"]
-    y25 = all_results["years"]["2025"]
+    y = all_results["years"]
     
-    print(f"{'จำนวนเหตุการณ์สำคัญที่ทดสอบ':<32} | {y19['total_events']} เหตุการณ์{'':<6} | {y20['total_events']} เหตุการณ์{'':<6} | {y25['total_events']} เหตุการณ์")
-    print(f"{'1️⃣ เดาตัวเลขจริงถูก (Pre-News)':<32} | {y19['pre_news_hits']}/{y19['total_events']} ({y19['pre_news_win_rate']}%)    | {y20['pre_news_hits']}/{y20['total_events']} ({y20['pre_news_win_rate']}%)    | {y25['pre_news_hits']}/{y25['total_events']} ({y25['pre_news_win_rate']}%)")
-    print(f"{'2️⃣ ตลาดวิ่งตรงโมเดล (Market Hit)':<32} | {y19['market_reaction_hits']}/{y19['total_events']} ({y19['market_win_rate']}%)    | {y20['market_reaction_hits']}/{y20['total_events']} ({y20['market_win_rate']}%)    | {y25['market_reaction_hits']}/{y25['total_events']} ({y25['market_win_rate']}%)")
-    print(f"{'3️⃣ แม่นยำสมบูรณ์ (Both Correct)':<32} | {y19['both_correct_hits']}/{y19['total_events']} ({y19['both_win_rate']}%)    | {y20['both_correct_hits']}/{y20['total_events']} ({y20['both_win_rate']}%)    | {y25['both_correct_hits']}/{y25['total_events']} ({y25['both_win_rate']}%)")
-    print("=" * 92)
+    print(f"{'จำนวนเหตุการณ์ที่ทดสอบ':<28} | {y['2019']['total_events']} รอบ{'':<8} | {y['2020']['total_events']} รอบ{'':<8} | {y['2021']['total_events']} รอบ{'':<9} | {y['2022']['total_events']} รอบ{'':<9} | {y['2025']['total_events']} รอบ")
+    print(f"{'1️⃣ เดาตัวเลขจริงถูก (Pre-News)':<28} | {y['2019']['pre_news_win_rate']}% ({y['2019']['pre_news_hits']}/{y['2019']['total_events']}){'':<2} | {y['2020']['pre_news_win_rate']}% ({y['2020']['pre_news_hits']}/{y['2020']['total_events']}){'':<2} | {y['2021']['pre_news_win_rate']}% ({y['2021']['pre_news_hits']}/{y['2021']['total_events']}){'':<3} | {y['2022']['pre_news_win_rate']}% ({y['2022']['pre_news_hits']}/{y['2022']['total_events']}){'':<3} | {y['2025']['pre_news_win_rate']}% ({y['2025']['pre_news_hits']}/{y['2025']['total_events']})")
+    print(f"{'2️⃣ ตลาดวิ่งตรงโมเดล (Market Hit)':<28} | {y['2019']['market_win_rate']}% ({y['2019']['market_reaction_hits']}/{y['2019']['total_events']}){'':<2} | {y['2020']['market_win_rate']}% ({y['2020']['market_reaction_hits']}/{y['2020']['total_events']}){'':<2} | {y['2021']['market_win_rate']}% ({y['2021']['market_reaction_hits']}/{y['2021']['total_events']}){'':<3} | {y['2022']['market_win_rate']}% ({y['2022']['market_reaction_hits']}/{y['2022']['total_events']}){'':<3} | {y['2025']['market_win_rate']}% ({y['2025']['market_reaction_hits']}/{y['2025']['total_events']})")
+    print(f"{'3️⃣ แม่นยำสมบูรณ์ (Both Correct)':<28} | {y['2019']['both_win_rate']}% ({y['2019']['both_correct_hits']}/{y['2019']['total_events']}){'':<2} | {y['2020']['both_win_rate']}% ({y['2020']['both_correct_hits']}/{y['2020']['total_events']}){'':<2} | {y['2021']['both_win_rate']}% ({y['2021']['both_correct_hits']}/{y['2021']['total_events']}){'':<3} | {y['2022']['both_win_rate']}% ({y['2022']['both_correct_hits']}/{y['2022']['total_events']}){'':<3} | {y['2025']['both_win_rate']}% ({y['2025']['both_correct_hits']}/{y['2025']['total_events']})")
+    print("=" * 110)
     
-    print("\n💡 ข้อสังเกตและบทเรียนเปรียบเทียบข้าม 3 ยุคสมัย (Key Cross-Era Lessons):")
-    print("1. ปี 2019: 'Geopolitics Overrides Economics' (สงครามการค้ากลบตัวเลขเศรษฐกิจ)")
-    print("   • ตัวเลขเศรษฐกิจจริงมักถูกบิดเบือนด้วยทวีตของ Donald Trump เกี่ยวกับกำแพงภาษีจีน")
-    print("2. ปี 2020: 'Infinite Liquidity Trumps Fundamentals' (สภาพคล่องไม่อั้นเอาชนะความพังทลาย)")
-    print("   • คนตกงาน 20.5 ล้านคน แต่หุ้นบวกได้เพราะ Fed อัดฉีด QE ไม่จำกัด และดอกเบี้ย 0%")
-    print("   • สังเกตความแม่นยำของตลาดปี 2020 หล่นลงมาอยู่ที่ 64% เพราะเหตุการณ์ Black Swan ฉุกเฉิน")
-    print("3. ปี 2025: 'Pure Macro Fundamentals' (ยุคกลไกดอกเบี้ยและเงินเฟ้อแท้จริง)")
-    print("   • ตลาดกลับมาเคลื่อนไหวตาม 3-Scenario Matrix อย่างมีระเบียบวินัยที่สุด (Market Hit สูงถึง 94.6%)")
-    print("=" * 92)
+    print("\n💡 วิวัฒนาการ 5 ยุคสมัยของเศรษฐกิจมหภาค (The Macro Paradigm Evolution):")
+    print("1. ปี 2019: 'Geopolitics Overrides Economics' (สงครามการค้า & ทวีตภาษีกลบตัวเลขเศรษฐกิจ)")
+    print("2. ปี 2020: 'Infinite Liquidity Trumps Fundamentals' (พิมพ์เงิน QE ไม่อั้น หุ้นขึ้นแม้คนตกงาน 20M)")
+    print("3. ปี 2021: 'The Transitory Delusion' (ตลาดเพลิดเพลินกับเงินเฟ้อชั่วคราว ดันหุ้นเทคทำ All-Time High)")
+    print("4. ปี 2022: 'The Great Tightening Shock' (เงินเฟ้อทะลุ 9.1% + ขึ้นดอกเบี้ย 75 bps ติด 4 ครั้ง หุ้นพังทลาย)")
+    print("5. ปี 2025: 'Pure Macro Fundamental Equilibrium' (ตลาดกลับสู่ระเบียบวินัยตามกลไกดอกเบี้ยแท้จริง)")
+    print("=" * 110)
 
 
 def print_single_year_report(stats: dict, detailed: bool = False):
@@ -130,6 +128,10 @@ def print_single_year_report(stats: dict, detailed: bool = False):
         theme = "The Fed Pivot, Mid-Cycle Rate Cuts & US-China Trade War Tweets"
     elif year == "2020":
         theme = "COVID-19 Black Swan Shock, Emergency Cuts to 0% & Infinite QE"
+    elif year == "2021":
+        theme = "Post-Vaccine Reopening Euphoria & The 'Transitory Inflation' Trap"
+    elif year == "2022":
+        theme = "40-Year Inflation Peak (9.1%), Aggressive 75 bps Mega-Hikes & Tech Bear Market"
     else:
         theme = "Soft Landing vs Sticky Inflation & Fed Cutting Cycle"
     
