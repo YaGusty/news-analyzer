@@ -24,8 +24,23 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Restore Alert History Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/calendar/alert_history.json
+          key: alert-history-${{ github.run_id }}
+          restore-keys: |
+            alert-history-
+
       - name: Run News Scheduler & Active Sniping
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           python -u scripts/main.py scheduler --check-once
+
+      - name: Save Alert History Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/calendar/alert_history.json
+          key: alert-history-${{ github.run_id }}

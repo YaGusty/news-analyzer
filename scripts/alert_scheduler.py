@@ -1,7 +1,7 @@
 """
 Automated Alert Scheduler for News Analyzer
 Monitors the Red Folder economic calendar and automatically dispatches:
-1. Weekly Radar Kickoff (Mondays / Start of week)
+1. Weekly Radar Kickoff (via dedicated weekly_radar workflow or --send-weekly)
 2. T-60 Minutes Pre-News Alert (Forecast + Live Market Pulse)
 3. T+5 Minutes Post-News Flash Alert (Actual Release Reaction)
 Prevents duplicate alerts using persistent history in data/calendar/alert_history.json.
@@ -282,19 +282,16 @@ def check_and_send_post_news_flashes(events: list, history: dict, webhook_url: s
 
 
 def run_scheduler_tick(webhook_url: str = None) -> dict:
-    """Run a single check pass across weekly radar, calendar, T-60 alerts, and instant flashes."""
+    """Run a single check pass across calendar, T-60 alerts, and instant flashes."""
     now_bkk = datetime.now(BKK_TZ).strftime("%Y-%m-%d %H:%M:%S")
     
     history = load_alert_history()
     events = get_calendar_events(high_only=True)
     
-    # 1. Automated Monday Morning Weekly Radar Kickoff
-    weekly_sent = check_and_send_weekly_radar(history, webhook_url)
-    
-    # 2. Pre-News Forecast Alerts (T-60m)
+    # Pre-News Forecast Alerts (T-60m)
     pre_count = check_and_send_pre_news_alerts(events, history, webhook_url)
     
-    # 3. Post-News Flash Analysis & Active Sniping
+    # Post-News Flash Analysis & Active Sniping
     flash_count = check_and_send_post_news_flashes(events, history, webhook_url)
     
     sleep_secs, mode_desc = get_adaptive_interval(events)
@@ -302,7 +299,7 @@ def run_scheduler_tick(webhook_url: str = None) -> dict:
     return {
         "status": "ok",
         "timestamp": now_bkk,
-        "weekly_radar_sent": weekly_sent,
+        "weekly_radar_sent": False,
         "pre_alerts_sent": pre_count,
         "flash_alerts_sent": flash_count,
         "events_monitored": len(events),
