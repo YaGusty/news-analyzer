@@ -6,6 +6,8 @@
 data/calendar/cache_events.json
 data/calendar/alert_history.json
 data/reports/*.md
+data/logs/
+*.pid
 __pycache__/
 *.pyc
 
